@@ -1,0 +1,22 @@
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $role in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 37
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $role in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 38
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $role in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 39
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $role in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 40
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $role in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 41
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $status in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 48
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $status in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 49
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $status in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 50
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $status in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 51
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $sort in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 58
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $sort in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 59
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $sort in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 60
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $sort in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 61
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $sort in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 62
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $sort in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 63
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $search in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 70
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $totalUsers in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 84
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $totalPages in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 198
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $branches in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 293
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 293
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  Undefined variable $branches in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 376
+[02-Sep-2025 14:30:27 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /home/ezizov04/alumpro.az/anbar/admin/users.php on line 376
