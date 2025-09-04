@@ -1,0 +1,136 @@
+# AlumPro.az .htaccess configuration
+# Security and routing rules
+
+# Prevent directory listing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Set default language
+DefaultLanguage az-AZ
+
+# Enable rewrite engine
+RewriteEngine On
+
+# Redirect to HTTPS (uncomment in production)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Redirect www to non-www (uncomment in production)
+# RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+# RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+
+# Set security headers
+<IfModule mod_headers.c>
+    # Protect against XSS attacks
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # Prevent MIME-type sniffing
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Prevent clickjacking
+    Header set X-Frame-Options "SAMEORIGIN"
+    
+    # Enable HSTS (uncomment in production)
+    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    
+    # Content Security Policy (customize as needed)
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self'"
+</IfModule>
+
+# Protect sensitive files
+<FilesMatch "(\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|swp)|~)$">
+    # Apache < 2.3
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+        Satisfy All
+    </IfModule>
+
+    # Apache ≥ 2.3
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+
+# Protect config directory
+<IfModule mod_rewrite.c>
+    RewriteRule ^config/ - [F,L]
+</IfModule>
+
+# Prevent access to PHP files in the uploads directory
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_URI} ^/uploads/.*\.php$
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# Handle 404 errors
+ErrorDocument 404 /404.php
+
+# Handle 403 errors
+ErrorDocument 403 /403.php
+
+# Handle 500 errors
+ErrorDocument 500 /500.php
+
+# PHP settings
+<IfModule mod_php7.c>
+    # Maximum execution time
+    php_value max_execution_time 300
+    
+    # Maximum upload file size
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    
+    # Session lifetime (4 hours)
+    php_value session.gc_maxlifetime 14400
+    
+    # Register globals (should be off for security)
+    php_flag register_globals off
+    
+    # Magic quotes (deprecated, should be off)
+    php_flag magic_quotes_gpc off
+    
+    # Output buffering
+    php_flag output_buffering on
+    
+    # Session cookie settings
+    php_value session.cookie_httponly 1
+    php_value session.use_only_cookies 1
+    
+    # Disable display of PHP errors in production
+    php_flag display_errors off
+    php_flag display_startup_errors off
+    php_flag log_errors on
+    php_value error_log /path/to/error.log
+</IfModule>
+
+# Enable compression for faster loading
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/x-javascript application/json application/xml
+</IfModule>
+
+# Set browser caching for static resources
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Images
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    
+    # CSS and JavaScript
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    
+    # Fonts
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    
+    # Default
+    ExpiresDefault "access plus 1 week"
+</IfModule>
