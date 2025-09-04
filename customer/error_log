@@ -1,0 +1,65 @@
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Undefined variable $unreadMessages in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 395
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 12:19:46 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 12:19:46 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function formatMoney() in /home/ezizov04/alumpro.az/anbar/customer/profile.php:436
+Stack trace:
+#0 {main}
+  thrown in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 436
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Undefined variable $unreadMessages in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 395
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 12:19:48 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 12:19:48 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function formatMoney() in /home/ezizov04/alumpro.az/anbar/customer/profile.php:436
+Stack trace:
+#0 {main}
+  thrown in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 436
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Undefined variable $unreadMessages in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 395
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 15:24:47 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 15:24:47 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function formatMoney() in /home/ezizov04/alumpro.az/anbar/customer/profile.php:436
+Stack trace:
+#0 {main}
+  thrown in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 436
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Undefined variable $unreadMessages in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 395
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 15:52:46 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 15:52:46 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function formatMoney() in /home/ezizov04/alumpro.az/anbar/customer/profile.php:436
+Stack trace:
+#0 {main}
+  thrown in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 436
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Undefined variable $unreadMessages in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 395
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 418
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 421
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 423
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Undefined variable $customer in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 15:58:48 UTC] PHP Warning:  Trying to access array offset on null in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 424
+[02-Sep-2025 15:58:48 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function formatMoney() in /home/ezizov04/alumpro.az/anbar/customer/profile.php:436
+Stack trace:
+#0 {main}
+  thrown in /home/ezizov04/alumpro.az/anbar/customer/profile.php on line 436
