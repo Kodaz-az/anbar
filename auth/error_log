@@ -1,0 +1,5 @@
+[03-Sep-2025 07:39:44 UTC] PHP Warning:  Constant ROLE_ADMIN already defined in /home/ezizov04/alumpro.az/anbar/config/config.php on line 30
+[03-Sep-2025 07:39:44 UTC] PHP Warning:  Constant ROLE_SELLER already defined in /home/ezizov04/alumpro.az/anbar/config/config.php on line 31
+[03-Sep-2025 07:39:44 UTC] PHP Warning:  Constant ROLE_PRODUCTION already defined in /home/ezizov04/alumpro.az/anbar/config/config.php on line 32
+[03-Sep-2025 07:39:44 UTC] PHP Warning:  Constant ROLE_CUSTOMER already defined in /home/ezizov04/alumpro.az/anbar/config/config.php on line 33
+[03-Sep-2025 07:39:44 UTC] PHP Warning:  Constant MAX_UPLOAD_SIZE already defined in /home/ezizov04/alumpro.az/anbar/config/config.php on line 41
