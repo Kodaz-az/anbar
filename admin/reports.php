@@ -346,13 +346,11 @@ if ($reportType === 'sales') {
         $chartData[] = $row['total_amount'];
     }
 } elseif ($reportType === 'products') {
-    // Popular profile types
+    // Popular profile types - FIX: Removed total_length and total_weight columns that don't exist
     $sqlProfiles = "SELECT 
                 profile_type,
                 COUNT(*) as usage_count,
-                SUM(quantity) as total_quantity,
-                SUM(total_length) as total_length,
-                SUM(total_weight) as total_weight
+                SUM(quantity) as total_quantity
             FROM order_profiles op
             JOIN orders o ON op.order_id = o.id
             WHERE $whereClauseStr
@@ -374,8 +372,8 @@ if ($reportType === 'sales') {
             'name' => $row['profile_type'],
             'count' => $row['usage_count'],
             'quantity' => $row['total_quantity'],
-            'length' => $row['total_length'],
-            'weight' => $row['total_weight']
+            'length' => 0, // Set default value since column was removed
+            'weight' => 0  // Set default value since column was removed
         ];
         
         $profileLabels[] = $row['profile_type'];
@@ -1023,7 +1021,8 @@ function translateMonthName($monthName) {
                                         <div class="product-count">
                                             <div class="product-count-value"><?= $profile['count'] ?> sifariş</div>
                                             <div class="product-count-details">
-                                                <?= $profile['quantity'] ?> ədəd, <?= $profile['length'] ?> m, <?= $profile['weight'] ?> kg
+                                                <?= $profile['quantity'] ?> ədəd
+                                                <!-- Removed length and weight data references -->
                                             </div>
                                         </div>
                                     </div>

@@ -103,16 +103,120 @@ if ($user['role'] === 'customer') {
 }
 
 // Get user activity log
-$sql = "SELECT al.*, u.fullname
-        FROM activity_log al
-        LEFT JOIN users u ON al.user_id = u.id
-        WHERE al.user_id = ?
-        ORDER BY al.timestamp DESC
-        LIMIT 20";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$activityLog = [];
+
+// Get from activity_logs table
+try {
+    $sql = "SELECT al.*, u.fullname, al.action_type, al.action_details, al.created_at
+            FROM activity_logs al
+            LEFT JOIN users u ON al.user_id = u.id
+            WHERE al.user_id = ?
+            ORDER BY al.created_at DESC
+            LIMIT 20";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result && $result->num_rows > 0) {
+        $activityLog = $result->fetch_all(MYSQLI_ASSOC);
+    }
+} catch (Exception $e) {
+    // If activity_logs table doesn't exist or has different structure, 
+    // we'll just have an empty activity log
+    $activityLog = [];
+}
+
+// Process form submissions for status change
+$success = '';
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    
+    if ($action === 'update_status') {
+        $status = $_POST['status'] ?? '';
+        
+        if (!in_array($status, ['active', 'inactive', 'suspended'])) {
+            $error = 'Yanlış status';
+        } elseif ($userId === $adminId) {
+            $error = 'Özünüzün statusunu dəyişə bilməzsiniz';
+        } else {
+            $stmt = $conn->prepare("UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->bind_param("si", $status, $userId);
+            
+            if ($stmt->execute()) {
+                logActivity($adminId, 'update_user_status', "Updated user ID: $userId status to: $status");
+                $success = 'İstifadəçi statusu uğurla yeniləndi';
+                
+                // Update the user data
+                $user['status'] = $status;
+            } else {
+                $error = 'İstifadəçi statusu yeniləmə zamanı xəta baş verdi';
+            }
+        }
+    } elseif ($action === 'reset_password') {
+        if ($userId === $adminId) {
+            $error = 'Özünüzün şifrəsini bu şəkildə sıfırlaya bilməzsiniz';
+        } else {
+            // Generate a new random password
+            $newPassword = generateRandomPassword();
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            
+            $stmt = $conn->prepare("UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->bind_param("si", $hashedPassword, $userId);
+            
+            if ($stmt->execute()) {
+                // Get user's email and phone
+                $stmt = $conn->prepare("SELECT email, fullname, phone FROM users u LEFT JOIN customers c ON u.id = c.user_id WHERE u.id = ?");
+                $stmt->bind_param("i", $userId);
+                $stmt->execute();
+                $userData = $stmt->get_result()->fetch_assoc();
+                
+                if ($userData) {
+                    // Send password reset notification
+                    logActivity($adminId, 'reset_user_password', "Reset password for user ID: $userId");
+                    
+                    // If WhatsApp integration is enabled and the user has a phone number
+                    if (defined('WHATSAPP_ENABLED') && WHATSAPP_ENABLED && !empty($userData['phone'])) {
+                        require_once '../includes/whatsapp.php';
+                        
+                        $variables = [
+                            'customer_name' => $userData['fullname'],
+                            'email' => $userData['email'],
+                            'password' => $newPassword,
+                            'company_phone' => defined('COMPANY_PHONE') ? COMPANY_PHONE : ''
+                        ];
+                        
+                        sendWhatsAppTemplate($userData['phone'], 'password_reset', $variables);
+                    }
+                    
+                    $success = 'İstifadəçi şifrəsi uğurla sıfırlandı: ' . $newPassword;
+                } else {
+                    $success = 'İstifadəçi şifrəsi uğurla sıfırlandı, lakin əlaqə məlumatları tapılmadı';
+                }
+            } else {
+                $error = 'Şifrə sıfırlama zamanı xəta baş verdi';
+            }
+        }
+    }
+}
+
+/**
+ * Generate a random password
+ * @param int $length Password length
+ * @return string Random password
+ */
+function generateRandomPassword($length = 8) {
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    $password = '';
+    
+    for ($i = 0; $i < $length; $i++) {
+        $password .= $chars[rand(0, strlen($chars) - 1)];
+    }
+    
+    return $password;
+}
 ?>
 <!DOCTYPE html>
 <html lang="az">
@@ -288,6 +392,77 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             color: #1f2937;
         }
         
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+        
+        .modal.show {
+            display: block;
+        }
+        
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1001;
+        }
+        
+        .modal-content {
+            position: relative;
+            background: white;
+            margin: 50px auto;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1002;
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            padding: 15px 20px;
+            background: linear-gradient(to right, #1e5eb1, #1eb15a);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-weight: 600;
+            font-size: 18px;
+            margin: 0;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
         @media (max-width: 768px) {
             .content-grid {
                 grid-template-columns: 1fr;
@@ -330,6 +505,11 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 border-bottom: 1px solid #f3f4f6;
                 padding-bottom: 5px;
             }
+            
+            .modal-content {
+                margin: 20px;
+                max-width: calc(100% - 40px);
+            }
         }
     </style>
 </head>
@@ -341,6 +521,7 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             <div class="nav-links">
                 <a href="index.php"><i class="fas fa-tachometer-alt"></i> Panel</a>
                 <a href="users.php" class="active"><i class="fas fa-users"></i> İstifadəçilər</a>
+                <a href="customers.php"><i class="fas fa-user-tie"></i> Müştərilər</a>
                 <a href="orders.php"><i class="fas fa-clipboard-list"></i> Sifarişlər</a>
                 <a href="inventory.php"><i class="fas fa-boxes"></i> Anbar</a>
                 <a href="branches.php"><i class="fas fa-building"></i> Filiallar</a>
@@ -370,6 +551,18 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     <span>İstifadəçi Detalları</span>
                 </div>
             </div>
+
+            <?php if (!empty($error)): ?>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($success)): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> <?= htmlspecialchars($success) ?>
+                </div>
+            <?php endif; ?>
 
             <!-- User Header -->
             <div class="user-header">
@@ -433,27 +626,16 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     </div>
                     
                     <div class="user-actions">
-                        <button type="button" class="btn btn-primary edit-user-btn" 
-                                data-id="<?= $user['id'] ?>"
-                                data-name="<?= htmlspecialchars($user['fullname']) ?>"
-                                data-email="<?= htmlspecialchars($user['email']) ?>"
-                                data-role="<?= $user['role'] ?>"
-                                data-branch="<?= $user['branch_id'] ?? '' ?>"
-                                data-status="<?= $user['status'] ?>">
+                        <button type="button" class="btn btn-primary" id="editUserBtn">
                             <i class="fas fa-edit"></i> Düzəliş et
                         </button>
                         
                         <?php if ($user['id'] !== $adminId): ?>
-                            <button type="button" class="btn btn-secondary status-change-btn"
-                                    data-id="<?= $user['id'] ?>"
-                                    data-name="<?= htmlspecialchars($user['fullname']) ?>"
-                                    data-status="<?= $user['status'] ?>">
+                            <button type="button" class="btn btn-secondary" id="statusChangeBtn">
                                 <i class="fas fa-exchange-alt"></i> Status dəyiş
                             </button>
                             
-                            <button type="button" class="btn btn-danger reset-password-btn"
-                                    data-id="<?= $user['id'] ?>"
-                                    data-name="<?= htmlspecialchars($user['fullname']) ?>">
+                            <button type="button" class="btn btn-danger" id="resetPasswordBtn">
                                 <i class="fas fa-key"></i> Şifrə sıfırla
                             </button>
                         <?php endif; ?>
@@ -632,18 +814,19 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         <div class="activity-icon">
                                             <?php
                                                 $activityIcon = 'fa-info-circle'; // Default
+                                                $actionType = $activity['action_type'] ?? '';
                                                 
-                                                if (strpos($activity['activity_type'], 'login') !== false) {
+                                                if (strpos($actionType, 'login') !== false) {
                                                     $activityIcon = 'fa-sign-in-alt';
-                                                } elseif (strpos($activity['activity_type'], 'logout') !== false) {
+                                                } elseif (strpos($actionType, 'logout') !== false) {
                                                     $activityIcon = 'fa-sign-out-alt';
-                                                } elseif (strpos($activity['activity_type'], 'order') !== false) {
+                                                } elseif (strpos($actionType, 'order') !== false) {
                                                     $activityIcon = 'fa-clipboard-list';
-                                                } elseif (strpos($activity['activity_type'], 'profile') !== false) {
+                                                } elseif (strpos($actionType, 'profile') !== false || strpos($actionType, 'user') !== false) {
                                                     $activityIcon = 'fa-user-edit';
-                                                } elseif (strpos($activity['activity_type'], 'password') !== false) {
+                                                } elseif (strpos($actionType, 'password') !== false) {
                                                     $activityIcon = 'fa-key';
-                                                } elseif (strpos($activity['activity_type'], 'register') !== false) {
+                                                } elseif (strpos($actionType, 'register') !== false || strpos($actionType, 'create') !== false) {
                                                     $activityIcon = 'fa-user-plus';
                                                 }
                                             ?>
@@ -652,25 +835,25 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         <div class="activity-content">
                                             <div class="activity-title">
                                                 <?php
-                                                    $activityDescription = $activity['description'];
+                                                    $activityDescription = $activity['action_details'] ?? '';
                                                     
                                                     // Format activity type for display
-                                                    if ($activity['activity_type'] === 'login') {
+                                                    if ($actionType === 'login') {
                                                         echo 'Hesaba giriş edildi';
-                                                    } elseif ($activity['activity_type'] === 'logout') {
+                                                    } elseif ($actionType === 'logout') {
                                                         echo 'Hesabdan çıxış edildi';
-                                                    } elseif ($activity['activity_type'] === 'register') {
+                                                    } elseif ($actionType === 'register') {
                                                         echo 'Qeydiyyatdan keçdi';
-                                                    } elseif ($activity['activity_type'] === 'profile_update') {
+                                                    } elseif ($actionType === 'profile_update' || $actionType === 'update_user') {
                                                         echo 'Profil məlumatları yeniləndi';
-                                                    } elseif ($activity['activity_type'] === 'password_change') {
+                                                    } elseif ($actionType === 'password_change' || $actionType === 'reset_password') {
                                                         echo 'Şifrə dəyişdirildi';
-                                                    } elseif ($activity['activity_type'] === 'order_create') {
+                                                    } elseif ($actionType === 'create_order') {
                                                         echo 'Yeni sifariş yaradıldı';
-                                                    } elseif ($activity['activity_type'] === 'order_update') {
+                                                    } elseif ($actionType === 'update_order') {
                                                         echo 'Sifariş yeniləndi';
                                                     } else {
-                                                        echo htmlspecialchars($activity['activity_type']);
+                                                        echo htmlspecialchars($actionType);
                                                     }
                                                     
                                                     // Show description if available
@@ -680,7 +863,7 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                                 ?>
                                             </div>
                                             <div class="activity-time">
-                                                <?= formatDate($activity['timestamp'], 'd.m.Y H:i') ?>
+                                                <?= formatDate($activity['created_at'], 'd.m.Y H:i') ?>
                                             </div>
                                         </div>
                                     </div>
@@ -694,16 +877,16 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </main>
 
     <!-- Edit User Modal -->
-    <div class="modal" id="editUserModal" tabindex="-1">
-        <div class="modal-backdrop" data-dismiss="modal"></div>
-        <div class="modal">
+    <div class="modal" id="editUserModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">İstifadəçi Düzəliş</h5>
-                <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">×</button>
+                <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form action="user-edit.php" method="post">
-                    <input type="hidden" id="edit_user_id" name="user_id" value="<?= $user['id'] ?>">
+                    <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                     
                     <div class="form-group">
                         <label for="edit_fullname" class="form-label">Ad Soyad</label>
@@ -759,7 +942,7 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     </div>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                        <button type="button" class="btn btn-secondary modal-close-btn">İmtina</button>
                         <button type="submit" class="btn btn-primary">Yadda saxla</button>
                     </div>
                 </form>
@@ -768,16 +951,16 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <!-- Status Change Modal -->
-    <div class="modal" id="statusChangeModal" tabindex="-1">
-        <div class="modal-backdrop" data-dismiss="modal"></div>
-        <div class="modal">
+    <div class="modal" id="statusChangeModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">İstifadəçi Statusunu Dəyiş</h5>
-                <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">×</button>
+                <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <form method="post" action="user-status.php">
-                    <input type="hidden" id="status_user_id" name="user_id" value="<?= $user['id'] ?>">
+                <form method="post" action="">
+                    <input type="hidden" name="action" value="update_status">
                     
                     <p>İstifadəçi: <strong><?= htmlspecialchars($user['fullname']) ?></strong></p>
                     <p>Cari status: <span class="user-status status-<?= $user['status'] ?>">
@@ -808,7 +991,7 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     </div>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                        <button type="button" class="btn btn-secondary modal-close-btn">İmtina</button>
                         <button type="submit" class="btn btn-primary">Yadda saxla</button>
                     </div>
                 </form>
@@ -817,16 +1000,16 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <!-- Reset Password Modal -->
-    <div class="modal" id="resetPasswordModal" tabindex="-1">
-        <div class="modal-backdrop" data-dismiss="modal"></div>
-        <div class="modal">
+    <div class="modal" id="resetPasswordModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Şifrə Sıfırlama</h5>
-                <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">×</button>
+                <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <form method="post" action="user-reset-password.php">
-                    <input type="hidden" id="reset_user_id" name="user_id" value="<?= $user['id'] ?>">
+                <form method="post" action="">
+                    <input type="hidden" name="action" value="reset_password">
                     
                     <p>Bu istifadəçinin şifrəsi sıfırlanacaq və yeni şifrə yaradılacaq.</p>
                     <p><strong><?= htmlspecialchars($user['fullname']) ?></strong></p>
@@ -834,7 +1017,7 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     <p>Davam etmək istəyirsiniz?</p>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                        <button type="button" class="btn btn-secondary modal-close-btn">İmtina</button>
                         <button type="submit" class="btn btn-danger">Şifrəni Sıfırla</button>
                     </div>
                 </form>
@@ -856,41 +1039,42 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             });
             
             // Modal functionality
-            const modals = document.querySelectorAll('.modal');
-            const modalBackdrops = document.querySelectorAll('.modal-backdrop');
-            const modalCloseButtons = document.querySelectorAll('.modal-close');
+            function openModal(modalId) {
+                document.getElementById(modalId).classList.add('show');
+            }
+            
+            function closeModal(modalEl) {
+                modalEl.classList.remove('show');
+            }
+            
+            // Close modal with click on backdrop or close button
+            document.querySelectorAll('.modal-backdrop, .modal-close, .modal-close-btn').forEach(el => {
+                el.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    closeModal(modal);
+                });
+            });
             
             // Open modals
-            document.querySelector('.edit-user-btn')?.addEventListener('click', function() {
-                document.getElementById('editUserModal').classList.add('show');
+            document.getElementById('editUserBtn').addEventListener('click', function() {
+                openModal('editUserModal');
             });
             
-            document.querySelector('.status-change-btn')?.addEventListener('click', function() {
-                document.getElementById('statusChangeModal').classList.add('show');
+            <?php if ($user['id'] !== $adminId): ?>
+            document.getElementById('statusChangeBtn').addEventListener('click', function() {
+                openModal('statusChangeModal');
             });
             
-            document.querySelector('.reset-password-btn')?.addEventListener('click', function() {
-                document.getElementById('resetPasswordModal').classList.add('show');
+            document.getElementById('resetPasswordBtn').addEventListener('click', function() {
+                openModal('resetPasswordModal');
             });
-            
-            // Close modals
-            modalBackdrops.forEach(backdrop => {
-                backdrop.addEventListener('click', function() {
-                    this.parentElement.classList.remove('show');
-                });
-            });
-            
-            modalCloseButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    this.closest('.modal').classList.remove('show');
-                });
-            });
+            <?php endif; ?>
             
             // Role-based branch visibility
             const roleSelect = document.getElementById('edit_role');
-            const branchField = document.getElementById('edit_branch_id').parentElement.parentElement;
+            const branchField = document.getElementById('edit_branch_id').closest('.form-col');
             
-            roleSelect?.addEventListener('change', function() {
+            roleSelect.addEventListener('change', function() {
                 if (this.value === 'seller' || this.value === 'production') {
                     branchField.style.display = 'block';
                     document.getElementById('edit_branch_id').setAttribute('required', 'required');
@@ -901,9 +1085,7 @@ $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             });
             
             // Trigger change event to set initial state
-            if (roleSelect) {
-                roleSelect.dispatchEvent(new Event('change'));
-            }
+            roleSelect.dispatchEvent(new Event('change'));
         });
     </script>
 </body>

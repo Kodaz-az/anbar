@@ -1,3 +1,279 @@
+<?php
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Include required files
+require_once '../config/config.php';
+require_once '../config/database.php';
+require_once '../includes/functions.php';
+
+// Check authentication
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
+    header('Location: ../auth/login.php');
+    exit;
+}
+
+// Check admin access
+if (!in_array($_SESSION['role'], ['admin', 'superadmin'])) {
+    header('Location: ../auth/unauthorized.php');
+    exit;
+}
+
+// Get admin info
+$adminId = $_SESSION['user_id'];
+$adminName = $_SESSION['fullname'] ?? 'Admin User';
+
+// Get database connection
+$conn = getDBConnection();
+
+// Initialize variables
+$userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
+$activityType = $_GET['type'] ?? 'all';
+$dateStart = $_GET['date_start'] ?? date('Y-m-d', strtotime('-30 days'));
+$dateEnd = $_GET['date_end'] ?? date('Y-m-d');
+$search = $_GET['search'] ?? '';
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$perPage = 20;
+$offset = ($page - 1) * $perPage;
+
+// Get user info if user_id is provided
+$userInfo = null;
+if ($userId > 0) {
+    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $userInfo = $result->fetch_assoc();
+    
+    if (!$userInfo) {
+        // User not found, redirect to activity log without user filter
+        header('Location: activity-log.php');
+        exit;
+    }
+}
+
+// Build query to fetch activity logs
+// Note: Using the correct table name "activity_logs" and column names from the database
+$query = "SELECT al.*, u.fullname 
+          FROM activity_logs al
+          LEFT JOIN users u ON al.user_id = u.id
+          WHERE 1=1";
+$countQuery = "SELECT COUNT(*) as total FROM activity_logs al WHERE 1=1";
+$params = [];
+$types = "";
+
+// Add filters
+if ($userId > 0) {
+    $query .= " AND al.user_id = ?";
+    $countQuery .= " AND al.user_id = ?";
+    $params[] = $userId;
+    $types .= "i";
+}
+
+if ($activityType !== 'all') {
+    $query .= " AND al.action_type = ?"; // Using action_type from database
+    $countQuery .= " AND al.action_type = ?";
+    $params[] = $activityType;
+    $types .= "s";
+}
+
+if (!empty($dateStart)) {
+    $query .= " AND DATE(al.created_at) >= ?"; // Using created_at from database
+    $countQuery .= " AND DATE(al.created_at) >= ?";
+    $params[] = $dateStart;
+    $types .= "s";
+}
+
+if (!empty($dateEnd)) {
+    $query .= " AND DATE(al.created_at) <= ?"; // Using created_at from database
+    $countQuery .= " AND DATE(al.created_at) <= ?";
+    $params[] = $dateEnd;
+    $types .= "s";
+}
+
+if (!empty($search)) {
+    $searchParam = "%$search%";
+    $query .= " AND (u.fullname LIKE ? OR al.action_type LIKE ? OR al.action_details LIKE ? OR al.ip_address LIKE ?)"; // Using action_details from database
+    $countQuery .= " AND (u.fullname LIKE ? OR al.action_type LIKE ? OR al.action_details LIKE ? OR al.ip_address LIKE ?)";
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $params[] = $searchParam;
+    $types .= "ssss";
+}
+
+// Get total count for pagination
+$stmt = $conn->prepare($countQuery);
+if (!empty($types)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$totalResult = $stmt->get_result()->fetch_assoc();
+$totalLogs = $totalResult['total'];
+$totalPages = ceil($totalLogs / $perPage);
+
+// Add order and limit
+$query .= " ORDER BY al.created_at DESC LIMIT ?, ?"; // Using created_at from database
+$params[] = $offset;
+$params[] = $perPage;
+$types .= "ii";
+
+// Execute the query
+$stmt = $conn->prepare($query);
+if (!empty($types)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$result = $stmt->get_result();
+$logs = [];
+
+while ($row = $result->fetch_assoc()) {
+    $logs[] = $row;
+}
+
+// Get unique activity types for filter dropdown
+$activityTypesResult = $conn->query("SELECT DISTINCT action_type FROM activity_logs ORDER BY action_type"); // Using action_type from database
+$activityTypes = [];
+while ($row = $activityTypesResult->fetch_assoc()) {
+    $activityTypes[] = $row['action_type'];
+}
+
+/**
+ * Format date for display
+ */
+
+
+/**
+ * Identify browser from user agent
+ */
+function identifyBrowser($userAgent) {
+    $ua = strtolower($userAgent);
+    $browser = '';
+    $os = '';
+    
+    // Detect OS
+    if (strpos($ua, 'windows') !== false) {
+        $os = 'Windows';
+    } elseif (strpos($ua, 'mac') !== false) {
+        $os = 'Mac';
+    } elseif (strpos($ua, 'linux') !== false) {
+        $os = 'Linux';
+    } elseif (strpos($ua, 'android') !== false) {
+        $os = 'Android';
+    } elseif (strpos($ua, 'iphone') !== false || strpos($ua, 'ipad') !== false) {
+        $os = 'iOS';
+    }
+    
+    // Detect browser
+    if (strpos($ua, 'chrome') !== false && strpos($ua, 'edg') === false) {
+        $browser = 'Chrome';
+    } elseif (strpos($ua, 'firefox') !== false) {
+        $browser = 'Firefox';
+    } elseif (strpos($ua, 'safari') !== false && strpos($ua, 'chrome') === false) {
+        $browser = 'Safari';
+    } elseif (strpos($ua, 'edge') !== false || strpos($ua, 'edg') !== false) {
+        $browser = 'Edge';
+    } elseif (strpos($ua, 'opera') !== false || strpos($ua, 'opr') !== false) {
+        $browser = 'Opera';
+    } elseif (strpos($ua, 'msie') !== false || strpos($ua, 'trident') !== false) {
+        $browser = 'Internet Explorer';
+    }
+    
+    if ($browser && $os) {
+        return $browser . ' / ' . $os;
+    } elseif ($browser) {
+        return $browser;
+    } elseif ($os) {
+        return $os;
+    }
+    
+    return 'Unknown';
+}
+?>
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aktivlik Jurnalı | AlumPro Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        /* Print styles */
+        @media print {
+            .app-header, .app-footer, .page-header, .filter-container, .card-actions, .pagination {
+                display: none !important;
+            }
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+            }
+        }
+        
+        .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .filter-label {
+            font-weight: 500;
+            min-width: 100px;
+        }
+        
+        .filter-select, .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
+            background: white;
+            min-width: 150px;
+        }
+        
+        /* User info card for individual user logs */
+        .user-info-card {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .user-details {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
         .user-meta {
             color: #6b7280;
             font-size: 14px;
@@ -226,8 +502,8 @@
                                         case 'inactive':
                                             echo 'Deaktiv';
                                             break;
-                                        case 'suspended':
-                                            echo 'Dayandırılmış';
+                                        case 'pending':
+                                            echo 'Gözləmədə';
                                             break;
                                         default:
                                             echo ucfirst($userInfo['status']);
@@ -347,23 +623,23 @@
                                     <?php
                                         $activityIcon = 'fa-info-circle'; // Default
                                         
-                                        if (strpos($log['activity_type'], 'login') !== false) {
+                                        if (strpos($log['action_type'], 'login') !== false) {
                                             $activityIcon = 'fa-sign-in-alt';
-                                        } elseif (strpos($log['activity_type'], 'logout') !== false) {
+                                        } elseif (strpos($log['action_type'], 'logout') !== false) {
                                             $activityIcon = 'fa-sign-out-alt';
-                                        } elseif (strpos($log['activity_type'], 'order') !== false) {
+                                        } elseif (strpos($log['action_type'], 'order') !== false) {
                                             $activityIcon = 'fa-clipboard-list';
-                                        } elseif (strpos($log['activity_type'], 'profile') !== false) {
+                                        } elseif (strpos($log['action_type'], 'profile') !== false) {
                                             $activityIcon = 'fa-user-edit';
-                                        } elseif (strpos($log['activity_type'], 'password') !== false) {
+                                        } elseif (strpos($log['action_type'], 'password') !== false) {
                                             $activityIcon = 'fa-key';
-                                        } elseif (strpos($log['activity_type'], 'register') !== false) {
+                                        } elseif (strpos($log['action_type'], 'register') !== false) {
                                             $activityIcon = 'fa-user-plus';
-                                        } elseif (strpos($log['activity_type'], 'delete') !== false) {
+                                        } elseif (strpos($log['action_type'], 'delete') !== false) {
                                             $activityIcon = 'fa-trash';
-                                        } elseif (strpos($log['activity_type'], 'create') !== false) {
+                                        } elseif (strpos($log['action_type'], 'create') !== false) {
                                             $activityIcon = 'fa-plus';
-                                        } elseif (strpos($log['activity_type'], 'update') !== false) {
+                                        } elseif (strpos($log['action_type'], 'update') !== false) {
                                             $activityIcon = 'fa-edit';
                                         }
                                     ?>
@@ -373,24 +649,24 @@
                                     <div class="activity-title">
                                         <?php
                                             $typeClass = 'type-default';
-                                            if (strpos($log['activity_type'], 'login') !== false) {
+                                            if (strpos($log['action_type'], 'login') !== false) {
                                                 $typeClass = 'type-login';
-                                            } elseif (strpos($log['activity_type'], 'logout') !== false) {
+                                            } elseif (strpos($log['action_type'], 'logout') !== false) {
                                                 $typeClass = 'type-logout';
-                                            } elseif (strpos($log['activity_type'], 'register') !== false) {
+                                            } elseif (strpos($log['action_type'], 'register') !== false) {
                                                 $typeClass = 'type-register';
-                                            } elseif (strpos($log['activity_type'], 'update') !== false || strpos($log['activity_type'], 'edit') !== false) {
+                                            } elseif (strpos($log['action_type'], 'update') !== false || strpos($log['action_type'], 'edit') !== false) {
                                                 $typeClass = 'type-update';
-                                            } elseif (strpos($log['activity_type'], 'delete') !== false) {
+                                            } elseif (strpos($log['action_type'], 'delete') !== false) {
                                                 $typeClass = 'type-delete';
-                                            } elseif (strpos($log['activity_type'], 'create') !== false || strpos($log['activity_type'], 'add') !== false) {
+                                            } elseif (strpos($log['action_type'], 'create') !== false || strpos($log['action_type'], 'add') !== false) {
                                                 $typeClass = 'type-create';
                                             }
                                         ?>
                                         <span class="activity-type <?= $typeClass ?>">
                                             <?php
-                                                $typeText = $log['activity_type'];
-                                                switch ($log['activity_type']) {
+                                                $typeText = $log['action_type'];
+                                                switch ($log['action_type']) {
                                                     case 'login':
                                                         $typeText = 'Giriş';
                                                         break;
@@ -439,7 +715,7 @@
                                         <?php endif; ?>
                                     </div>
                                     <div class="activity-meta">
-                                        <div><?= formatDate($log['timestamp'], 'd.m.Y H:i:s') ?></div>
+                                        <div><?= formatDate($log['created_at'], 'd.m.Y H:i:s') ?></div>
                                         <div>IP: <?= htmlspecialchars($log['ip_address'] ?? '-') ?></div>
                                         <?php if (!empty($log['user_agent'])): ?>
                                             <div title="<?= htmlspecialchars($log['user_agent']) ?>">
@@ -447,8 +723,8 @@
                                             </div>
                                         <?php endif; ?>
                                     </div>
-                                    <?php if (!empty($log['description'])): ?>
-                                        <div class="activity-description"><?= htmlspecialchars($log['description']) ?></div>
+                                    <?php if (!empty($log['action_details'])): ?>
+                                        <div class="activity-description"><?= htmlspecialchars($log['action_details']) ?></div>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -530,53 +806,6 @@
                 });
             });
         });
-        
-        /**
-         * Identify browser from user agent
-         */
-        function identifyBrowser(userAgent) {
-            const ua = userAgent.toLowerCase();
-            let browser = '';
-            let os = '';
-            
-            // Detect OS
-            if (ua.indexOf('windows') !== -1) {
-                os = 'Windows';
-            } else if (ua.indexOf('mac') !== -1) {
-                os = 'Mac';
-            } else if (ua.indexOf('linux') !== -1) {
-                os = 'Linux';
-            } else if (ua.indexOf('android') !== -1) {
-                os = 'Android';
-            } else if (ua.indexOf('iphone') !== -1 || ua.indexOf('ipad') !== -1) {
-                os = 'iOS';
-            }
-            
-            // Detect browser
-            if (ua.indexOf('chrome') !== -1 && ua.indexOf('edg') === -1) {
-                browser = 'Chrome';
-            } else if (ua.indexOf('firefox') !== -1) {
-                browser = 'Firefox';
-            } else if (ua.indexOf('safari') !== -1 && ua.indexOf('chrome') === -1) {
-                browser = 'Safari';
-            } else if (ua.indexOf('edge') !== -1 || ua.indexOf('edg') !== -1) {
-                browser = 'Edge';
-            } else if (ua.indexOf('opera') !== -1 || ua.indexOf('opr') !== -1) {
-                browser = 'Opera';
-            } else if (ua.indexOf('msie') !== -1 || ua.indexOf('trident') !== -1) {
-                browser = 'Internet Explorer';
-            }
-            
-            if (browser && os) {
-                return browser + ' / ' + os;
-            } else if (browser) {
-                return browser;
-            } else if (os) {
-                return os;
-            }
-            
-            return 'Unknown';
-        }
     </script>
 </body>
 </html>

@@ -347,6 +347,47 @@ while ($row = $result->fetch_assoc()) {
         .user-role-customer { background: #d1fae5; color: #065f46; }
         .user-role-production { background: #fef3c7; color: #92400e; }
         
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .shortcut-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: #374151;
+        }
+        
+        .shortcut-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .shortcut-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 15px;
+        }
+        
+        .shortcut-title {
+            font-weight: 500;
+            font-size: 16px;
+        }
+        
         @media (max-width: 992px) {
             .admin-content {
                 grid-template-columns: 1fr;
@@ -362,6 +403,7 @@ while ($row = $result->fetch_assoc()) {
             <div class="nav-links">
                 <a href="index.php" class="active"><i class="fas fa-tachometer-alt"></i> Panel</a>
                 <a href="users.php"><i class="fas fa-users"></i> İstifadəçilər</a>
+                <a href="customers.php"><i class="fas fa-user-tie"></i> Müştərilər</a>
                 <a href="orders.php"><i class="fas fa-clipboard-list"></i> Sifarişlər</a>
                 <a href="inventory.php"><i class="fas fa-boxes"></i> Anbar</a>
                 <a href="branches.php"><i class="fas fa-building"></i> Filiallar</a>
@@ -390,6 +432,40 @@ while ($row = $result->fetch_assoc()) {
                         <i class="fas fa-cog"></i> Tənzimləmələr
                     </a>
                 </div>
+            </div>
+
+            <!-- Quick Shortcuts -->
+            <div class="shortcuts-grid">
+                <a href="customers.php" class="shortcut-card">
+                    <div class="shortcut-icon">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="shortcut-title">Müştərilər</div>
+                </a>
+                <a href="orders.php" class="shortcut-card">
+                    <div class="shortcut-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="shortcut-title">Sifarişlər</div>
+                </a>
+                <a href="users.php" class="shortcut-card">
+                    <div class="shortcut-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="shortcut-title">İstifadəçilər</div>
+                </a>
+                <a href="inventory.php" class="shortcut-card">
+                    <div class="shortcut-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div class="shortcut-title">Anbar</div>
+                </a>
+                <a href="reports.php" class="shortcut-card">
+                    <div class="shortcut-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="shortcut-title">Hesabatlar</div>
+                </a>
             </div>
 
             <!-- Dashboard Stats -->
@@ -513,7 +589,9 @@ while ($row = $result->fetch_assoc()) {
                                         <div class="activity-icon">
                                             <?php
                                                 $icon = 'fa-info';
-                                                switch ($activity['action']) {
+                                                $actionType = $activity['action_type'] ?? '';
+                                                
+                                                switch ($actionType) {
                                                     case 'login':
                                                         $icon = 'fa-sign-in-alt';
                                                         break;
@@ -521,22 +599,27 @@ while ($row = $result->fetch_assoc()) {
                                                         $icon = 'fa-sign-out-alt';
                                                         break;
                                                     case 'create_order':
+                                                    case 'create_customer':
+                                                    case 'create_user':
                                                         $icon = 'fa-plus-circle';
                                                         break;
                                                     case 'update_order':
+                                                    case 'update_customer':
+                                                    case 'update_user':
+                                                    case 'edit_customer':
                                                         $icon = 'fa-edit';
                                                         break;
                                                     case 'delete_order':
+                                                    case 'delete_customer':
+                                                    case 'delete_user':
                                                         $icon = 'fa-trash';
-                                                        break;
-                                                    case 'create_customer':
-                                                        $icon = 'fa-user-plus';
-                                                        break;
-                                                    case 'update_customer':
-                                                        $icon = 'fa-user-edit';
                                                         break;
                                                     case 'inventory_change':
                                                         $icon = 'fa-boxes';
+                                                        break;
+                                                    case 'reset_password':
+                                                    case 'reset_customer_password':
+                                                        $icon = 'fa-key';
                                                         break;
                                                 }
                                             ?>
@@ -544,7 +627,7 @@ while ($row = $result->fetch_assoc()) {
                                         </div>
                                         <div class="activity-content">
                                             <div class="activity-user"><?= htmlspecialchars($activity['fullname'] ?? 'System') ?></div>
-                                            <div class="activity-action"><?= htmlspecialchars($activity['details']) ?></div>
+                                            <div class="activity-action"><?= htmlspecialchars($activity['action_details'] ?? $activity['action_type'] ?? 'No details') ?></div>
                                             <div class="activity-time"><?= formatDate($activity['created_at'], 'd.m.Y H:i') ?></div>
                                         </div>
                                     </div>

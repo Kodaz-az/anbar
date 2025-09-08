@@ -149,10 +149,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 // Add new branch
-                $sql = "INSERT INTO branches (name, address, phone, manager_id, status, created_at, created_by) 
-                        VALUES (?, ?, ?, ?, ?, NOW(), ?)";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("sssisi", $branchName, $branchAddress, $branchPhone, $branchManagerId, $branchStatus, $userId);
+               $sql = "INSERT INTO branches (name, address, phone, manager_id, status, created_at) 
+        VALUES (?, ?, ?, ?, ?, NOW())";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("sssis", $branchName, $branchAddress, $branchPhone, $branchManagerId, $branchStatus);
                 
                 if ($stmt->execute()) {
                     $message = 'Yeni filial uğurla əlavə edildi';
@@ -360,10 +360,6 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
             margin-left: 10px;
         }
         
-        .modal-dialog.large {
-            max-width: 800px;
-        }
-        
         .template-preview {
             background: #f9fafb;
             border: 1px solid #e5e7eb;
@@ -392,9 +388,77 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
             cursor: pointer;
         }
         
+        /* Custom Modal Styling - Override Bootstrap */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.7) !important;
+            opacity: 1 !important;
+        }
+        
+        .modal-dialog {
+            max-width: 500px !important;
+            margin: 1.75rem auto !important;
+        }
+        
+        .modal-dialog.large {
+            max-width: 700px !important;
+        }
+        
+        .modal-content {
+            border: none !important;
+            border-radius: 8px !important;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #1eb15a 0%, #1e5eb1 100%) !important;
+            color: white !important;
+            border-bottom: none !important;
+            padding: 15px 20px !important;
+            border-top-left-radius: 8px !important;
+            border-top-right-radius: 8px !important;
+        }
+        
+        .modal-title {
+            font-weight: 600 !important;
+            font-size: 18px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+        
+        .close {
+            color: white !important;
+            opacity: 0.8 !important;
+            text-shadow: none !important;
+            font-size: 24px !important;
+        }
+        
+        .close:hover {
+            opacity: 1 !important;
+        }
+        
+        .modal-body {
+            padding: 20px !important;
+            background-color: white !important;
+            color: #333 !important;
+        }
+        
+        .modal-footer {
+            border-top: 1px solid #eee !important;
+            padding: 15px 20px !important;
+            background-color: white !important;
+        }
+        
         @media (max-width: 992px) {
             .form-grid {
                 grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .modal-dialog {
+                margin: 10px !important;
+                max-width: calc(100% - 20px) !important;
             }
         }
     </style>
@@ -556,7 +620,7 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
                                 <div class="settings-section-title">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span>Filiallar</span>
-                                        <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#branchModal">
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="openBranchModal()">
                                             <i class="fas fa-plus"></i> Yeni Filial
                                         </button>
                                     </div>
@@ -602,7 +666,7 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
                                                 </div>
                                                 <div class="branch-actions">
                                                     <button type="button" class="btn btn-sm btn-outline" 
-                                                            onclick="editBranch(<?= $branch['id'] ?>, '<?= addslashes($branch['name']) ?>', '<?= addslashes($branch['address']) ?>', '<?= addslashes($branch['phone']) ?>', <?= $branch['manager_id'] ?? 'null' ?>, '<?= $branch['status'] ?>')">
+                                                            onclick="editBranch(<?= $branch['id'] ?>, '<?= addslashes($branch['name']) ?>', '<?= addslashes($branch['address'] ?? '') ?>', '<?= addslashes($branch['phone'] ?? '') ?>', '<?= $branch['manager_id'] ?? 0 ?>', '<?= $branch['status'] ?>')">
                                                         <i class="fas fa-edit"></i> Düzəliş et
                                                     </button>
                                                 </div>
@@ -619,7 +683,7 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
                                 <div class="settings-section-title">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span>Bildiriş Şablonları</span>
-                                        <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#templateModal">
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="openTemplateModal()">
                                             <i class="fas fa-plus"></i> Yeni Şablon
                                         </button>
                                     </div>
@@ -658,7 +722,7 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
                                                 </div>
                                                 <div class="template-details">
                                                     <?php if (!empty($template['template_subject'])): ?>
-                                                                                                                <div><strong>Mövzu:</strong> <?= htmlspecialchars($template['template_subject']) ?></div>
+                                                        <div><strong>Mövzu:</strong> <?= htmlspecialchars($template['template_subject']) ?></div>
                                                     <?php endif; ?>
                                                     
                                                     <?php if (!empty($template['template_content'])): ?>
@@ -669,11 +733,11 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
                                                 </div>
                                                 <div class="template-actions">
                                                     <button type="button" class="btn btn-sm btn-outline" 
-                                                            onclick="editTemplate(<?= $template['id'] ?>, '<?= addslashes($template['template_name']) ?>', '<?= addslashes($template['template_type']) ?>', '<?= addslashes($template['template_subject']) ?>', '<?= addslashes($template['template_content']) ?>', '<?= addslashes($template['variables'] ?? '') ?>')">
+                                                            onclick="editTemplate(<?= $template['id'] ?>, '<?= addslashes($template['template_name']) ?>', '<?= addslashes($template['template_type']) ?>', '<?= addslashes($template['template_subject'] ?? '') ?>', '<?= addslashes($template['template_content']) ?>', '<?= addslashes($template['variables'] ?? '') ?>')">
                                                         <i class="fas fa-edit"></i> Düzəliş et
                                                     </button>
                                                     <button type="button" class="btn btn-sm btn-outline" 
-                                                            onclick="previewTemplate(<?= $template['id'] ?>, '<?= addslashes($template['template_name']) ?>', '<?= addslashes($template['template_type']) ?>', '<?= addslashes($template['template_subject']) ?>', '<?= addslashes($template['template_content']) ?>', '<?= addslashes($template['variables'] ?? '') ?>')">
+                                                            onclick="previewTemplate(<?= $template['id'] ?>, '<?= addslashes($template['template_name']) ?>', '<?= addslashes($template['template_type']) ?>', '<?= addslashes($template['template_subject'] ?? '') ?>', '<?= addslashes($template['template_content']) ?>', '<?= addslashes($template['variables'] ?? '') ?>')">
                                                         <i class="fas fa-eye"></i> Önizləmə
                                                     </button>
                                                 </div>
@@ -739,7 +803,7 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="branchModalLabel">Yeni Filial</h5>
+                    <h5 class="modal-title" id="branchModalLabel"><i class="fas fa-building"></i> Yeni Filial</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -796,7 +860,7 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
         <div class="modal-dialog large" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="templateModalLabel">Yeni Bildiriş Şablonu</h5>
+                    <h5 class="modal-title" id="templateModalLabel"><i class="fas fa-file-alt"></i> Yeni Bildiriş Şablonu</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -865,7 +929,7 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="previewModalLabel">Şablon Önizləməsi</h5>
+                    <h5 class="modal-title" id="previewModalLabel"><i class="fas fa-eye"></i> Şablon Önizləməsi</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -899,8 +963,8 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
         <div>&copy; <?= date('Y') ?> AlumPro.az - Bütün hüquqlar qorunur</div>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // User menu toggle
@@ -938,6 +1002,13 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
                     tabButton.click();
                 }
             }
+            
+            // Modal close buttons
+            document.querySelectorAll('[data-dismiss="modal"]').forEach(button => {
+                button.addEventListener('click', function() {
+                    jQuery(this).closest('.modal').modal('hide');
+                });
+            });
             
             // Backup functionality
             document.getElementById('createBackupBtn').addEventListener('click', function() {
@@ -1035,8 +1106,28 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
             }, 1000);
         }
         
+        // Function to open branch modal
+        function openBranchModal() {
+            // Reset form data
+            document.getElementById('branchModalLabel').innerHTML = '<i class="fas fa-building"></i> Yeni Filial';
+            document.getElementById('branch_id').value = 0;
+            document.getElementById('branch_name').value = '';
+            document.getElementById('branch_address').value = '';
+            document.getElementById('branch_phone').value = '';
+            document.getElementById('branch_manager_id').value = '';
+            document.getElementById('branch_status').value = 'active';
+            
+            // Open modal with proper settings
+            jQuery('#branchModal').modal({
+                backdrop: 'static',
+                keyboard: false,
+                show: true
+            });
+        }
+        
+        // Function to edit branch
         function editBranch(id, name, address, phone, managerId, status) {
-            document.getElementById('branchModalLabel').textContent = 'Filial Düzəliş';
+            document.getElementById('branchModalLabel').innerHTML = '<i class="fas fa-edit"></i> Filial Düzəliş';
             document.getElementById('branch_id').value = id;
             document.getElementById('branch_name').value = name;
             document.getElementById('branch_address').value = address;
@@ -1050,11 +1141,36 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
             
             document.getElementById('branch_status').value = status;
             
-            $('#branchModal').modal('show');
+            // Open modal with proper settings
+            jQuery('#branchModal').modal({
+                backdrop: 'static',
+                keyboard: false,
+                show: true
+            });
         }
         
+        // Function to open template modal
+        function openTemplateModal() {
+            // Reset form data
+            document.getElementById('templateModalLabel').innerHTML = '<i class="fas fa-file-alt"></i> Yeni Bildiriş Şablonu';
+            document.getElementById('template_id').value = 0;
+            document.getElementById('template_name').value = '';
+            document.getElementById('template_type').value = 'whatsapp';
+            document.getElementById('template_subject').value = '';
+            document.getElementById('template_content').value = '';
+            document.getElementById('template_variables').value = '';
+            
+            // Open modal with proper settings
+            jQuery('#templateModal').modal({
+                backdrop: 'static',
+                keyboard: false,
+                show: true
+            });
+        }
+        
+        // Function to edit template
         function editTemplate(id, name, type, subject, content, variables) {
-            document.getElementById('templateModalLabel').textContent = 'Şablon Düzəliş';
+            document.getElementById('templateModalLabel').innerHTML = '<i class="fas fa-edit"></i> Şablon Düzəliş';
             document.getElementById('template_id').value = id;
             document.getElementById('template_name').value = name;
             document.getElementById('template_type').value = type;
@@ -1062,9 +1178,15 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
             document.getElementById('template_content').value = content;
             document.getElementById('template_variables').value = variables;
             
-            $('#templateModal').modal('show');
+            // Open modal with proper settings
+            jQuery('#templateModal').modal({
+                backdrop: 'static',
+                keyboard: false,
+                show: true
+            });
         }
         
+        // Function to preview template
         function previewTemplate(id, name, type, subject, content, variables) {
             document.getElementById('preview_template_name').textContent = name;
             
@@ -1118,9 +1240,15 @@ $managers = $conn->query($managersSql)->fetch_all(MYSQLI_ASSOC);
                 variablesContainer.innerHTML = '<em>Dəyişən təyin edilməyib</em>';
             }
             
-            $('#previewModal').modal('show');
+            // Open modal with proper settings
+            jQuery('#previewModal').modal({
+                backdrop: 'static',
+                keyboard: false,
+                show: true
+            });
         }
         
+        // Function to add variable to template
         function addVariable(variable) {
             const input = document.getElementById('template_variables');
             let variables = [];

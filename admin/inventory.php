@@ -251,6 +251,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($glassInventoryExists) {
                         $thickness = floatval($_POST['thickness'] ?? 0);
                         $type = trim($_POST['glass_type'] ?? '');
+                        // Handle custom glass type
+                        if ($type === 'custom' && !empty($_POST['custom_glass_type'])) {
+                            $type = trim($_POST['custom_glass_type']);
+                        }
                         $dimensions = trim($_POST['dimensions'] ?? '');
                         $purchaseVolume = floatval($_POST['purchase_volume'] ?? 0);
                         $purchasePrice = floatval($_POST['purchase_price'] ?? 0);
@@ -279,6 +283,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($profileInventoryExists) {
                         $color = trim($_POST['color'] ?? '');
                         $type = trim($_POST['profile_type'] ?? '');
+                        // Handle custom profile type
+                        if ($type === 'custom' && !empty($_POST['custom_profile_type'])) {
+                            $type = trim($_POST['custom_profile_type']);
+                        }
                         $unitOfMeasure = $_POST['unit_of_measure'] ?? 'ədəd';
                         $country = trim($_POST['country'] ?? '');
                         $purchaseQuantity = floatval($_POST['purchase_quantity'] ?? 0);
@@ -501,17 +509,257 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-}
-
-/**
- * Check if a table exists in the database
- * @param mysqli $conn Database connection
- * @param string $tableName Table name to check
- * @return bool True if table exists, false otherwise
- */
-function tableExists($conn, $tableName) {
-    $result = $conn->query("SHOW TABLES LIKE '$tableName'");
-    return $result->num_rows > 0;
+    
+    // Delete item
+    if (isset($_POST['delete_item'])) {
+        $itemType = $_POST['item_type'] ?? '';
+        $itemId = (int)($_POST['item_id'] ?? 0);
+        
+        if ($itemId <= 0) {
+            $message = 'Məhsul ID-si düzgün deyil';
+            $messageType = 'error';
+        } else {
+            switch ($itemType) {
+                case 'glass':
+                    if ($glassInventoryExists) {
+                        // Get item name for log
+                        $sql = "SELECT name FROM glass_inventory WHERE id = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("i", $itemId);
+                        $stmt->execute();
+                        $result = $stmt->get_result()->fetch_assoc();
+                        
+                        if ($result) {
+                            $itemName = $result['name'];
+                            
+                            // Delete item
+                            $sql = "DELETE FROM glass_inventory WHERE id = ?";
+                            $stmt = $conn->prepare($sql);
+                            $stmt->bind_param("i", $itemId);
+                            
+                            if ($stmt->execute()) {
+                                $message = 'Şüşə məhsulu uğurla silindi';
+                                $messageType = 'success';
+                                logActivity($userId, 'delete_inventory', "Şüşə məhsulu silindi: $itemName");
+                            } else {
+                                $message = 'Məhsul silinərkən xəta baş verdi';
+                                $messageType = 'error';
+                            }
+                        } else {
+                            $message = 'Məhsul tapılmadı';
+                            $messageType = 'error';
+                        }
+                    } else {
+                        $message = 'Şüşə inventar cədvəli mövcud deyil';
+                        $messageType = 'error';
+                    }
+                    break;
+                    
+                case 'profile':
+                    if ($profileInventoryExists) {
+                        // Get item name for log
+                        $sql = "SELECT name FROM profile_inventory WHERE id = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("i", $itemId);
+                        $stmt->execute();
+                        $result = $stmt->get_result()->fetch_assoc();
+                        
+                        if ($result) {
+                            $itemName = $result['name'];
+                            
+                            // Delete item
+                            $sql = "DELETE FROM profile_inventory WHERE id = ?";
+                            $stmt = $conn->prepare($sql);
+                            $stmt->bind_param("i", $itemId);
+                            
+                            if ($stmt->execute()) {
+                                $message = 'Profil məhsulu uğurla silindi';
+                                $messageType = 'success';
+                                logActivity($userId, 'delete_inventory', "Profil məhsulu silindi: $itemName");
+                            } else {
+                                $message = 'Məhsul silinərkən xəta baş verdi';
+                                $messageType = 'error';
+                            }
+                        } else {
+                            $message = 'Məhsul tapılmadı';
+                            $messageType = 'error';
+                        }
+                    } else {
+                        $message = 'Profil inventar cədvəli mövcud deyil';
+                        $messageType = 'error';
+                    }
+                    break;
+                    
+                case 'accessory':
+                    if ($accessoriesInventoryExists) {
+                        // Get item name for log
+                        $sql = "SELECT name FROM accessories_inventory WHERE id = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("i", $itemId);
+                        $stmt->execute();
+                        $result = $stmt->get_result()->fetch_assoc();
+                        
+                        if ($result) {
+                            $itemName = $result['name'];
+                            
+                            // Delete item
+                            $sql = "DELETE FROM accessories_inventory WHERE id = ?";
+                            $stmt = $conn->prepare($sql);
+                            $stmt->bind_param("i", $itemId);
+                            
+                            if ($stmt->execute()) {
+                                $message = 'Aksesuar məhsulu uğurla silindi';
+                                $messageType = 'success';
+                                logActivity($userId, 'delete_inventory', "Aksesuar məhsulu silindi: $itemName");
+                            } else {
+                                $message = 'Məhsul silinərkən xəta baş verdi';
+                                $messageType = 'error';
+                            }
+                        } else {
+                            $message = 'Məhsul tapılmadı';
+                            $messageType = 'error';
+                        }
+                    } else {
+                        $message = 'Aksesuar inventar cədvəli mövcud deyil';
+                        $messageType = 'error';
+                    }
+                    break;
+                    
+                default:
+                    $message = 'Yanlış məhsul növü';
+                    $messageType = 'error';
+            }
+        }
+    }
+    
+    // Edit item
+    if (isset($_POST['edit_item'])) {
+        $itemType = $_POST['item_type'] ?? '';
+        $itemId = (int)($_POST['item_id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        
+        if ($itemId <= 0) {
+            $message = 'Məhsul ID-si düzgün deyil';
+            $messageType = 'error';
+        } elseif (empty($name)) {
+            $message = 'Məhsul adı boş ola bilməz';
+            $messageType = 'error';
+        } else {
+            switch ($itemType) {
+                case 'glass':
+                    if ($glassInventoryExists) {
+                        $thickness = floatval($_POST['thickness'] ?? 0);
+                        $type = trim($_POST['glass_type'] ?? '');
+                        if ($type === 'custom' && !empty($_POST['custom_glass_type'])) {
+                            $type = trim($_POST['custom_glass_type']);
+                        }
+                        $dimensions = trim($_POST['dimensions'] ?? '');
+                        $purchasePrice = floatval($_POST['purchase_price'] ?? 0);
+                        $notes = trim($_POST['notes'] ?? '');
+                        
+                        $sql = "UPDATE glass_inventory SET 
+                                name = ?, 
+                                thickness = ?, 
+                                type = ?, 
+                                dimensions = ?, 
+                                purchase_price = ?, 
+                                notes = ?, 
+                                updated_by = ? 
+                                WHERE id = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("sdssdii", $name, $thickness, $type, $dimensions, $purchasePrice, $notes, $userId, $itemId);
+                        
+                        if ($stmt->execute()) {
+                            $message = 'Şüşə məhsulu uğurla yeniləndi';
+                            $messageType = 'success';
+                            logActivity($userId, 'edit_inventory', "Şüşə məhsulu yeniləndi: $name");
+                        } else {
+                            $message = 'Məhsul yenilənərkən xəta baş verdi';
+                            $messageType = 'error';
+                        }
+                    } else {
+                        $message = 'Şüşə inventar cədvəli mövcud deyil';
+                        $messageType = 'error';
+                    }
+                    break;
+                    
+                case 'profile':
+                    if ($profileInventoryExists) {
+                        $color = trim($_POST['color'] ?? '');
+                        $type = trim($_POST['profile_type'] ?? '');
+                        if ($type === 'custom' && !empty($_POST['custom_profile_type'])) {
+                            $type = trim($_POST['custom_profile_type']);
+                        }
+                        $unitOfMeasure = $_POST['unit_of_measure'] ?? 'ədəd';
+                        $country = trim($_POST['country'] ?? '');
+                        $purchasePrice = floatval($_POST['purchase_price'] ?? 0);
+                        $salesPrice = floatval($_POST['sales_price'] ?? 0);
+                        $notes = trim($_POST['notes'] ?? '');
+                        
+                        $sql = "UPDATE profile_inventory SET 
+                                name = ?, 
+                                color = ?, 
+                                type = ?, 
+                                unit_of_measure = ?, 
+                                country = ?, 
+                                purchase_price = ?, 
+                                sales_price = ?, 
+                                notes = ?, 
+                                updated_by = ? 
+                                WHERE id = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("sssssddii", $name, $color, $type, $unitOfMeasure, $country, $purchasePrice, $salesPrice, $notes, $userId, $itemId);
+                        
+                        if ($stmt->execute()) {
+                            $message = 'Profil məhsulu uğurla yeniləndi';
+                            $messageType = 'success';
+                            logActivity($userId, 'edit_inventory', "Profil məhsulu yeniləndi: $name");
+                        } else {
+                            $message = 'Məhsul yenilənərkən xəta baş verdi';
+                            $messageType = 'error';
+                        }
+                    } else {
+                        $message = 'Profil inventar cədvəli mövcud deyil';
+                        $messageType = 'error';
+                    }
+                    break;
+                    
+                case 'accessory':
+                    if ($accessoriesInventoryExists) {
+                        $unitOfMeasure = $_POST['accessory_unit'] ?? 'ədəd';
+                        $purchasePrice = floatval($_POST['purchase_price'] ?? 0);
+                        $notes = trim($_POST['notes'] ?? '');
+                        
+                        $sql = "UPDATE accessories_inventory SET 
+                                name = ?, 
+                                unit_of_measure = ?, 
+                                purchase_price = ?, 
+                                notes = ?, 
+                                updated_by = ? 
+                                WHERE id = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("sssii", $name, $unitOfMeasure, $purchasePrice, $notes, $userId, $itemId);
+                        
+                        if ($stmt->execute()) {
+                            $message = 'Aksesuar məhsulu uğurla yeniləndi';
+                            $messageType = 'success';
+                            logActivity($userId, 'edit_inventory', "Aksesuar məhsulu yeniləndi: $name");
+                        } else {
+                            $message = 'Məhsul yenilənərkən xəta baş verdi';
+                            $messageType = 'error';
+                        }
+                    } else {
+                        $message = 'Aksesuar inventar cədvəli mövcud deyil';
+                        $messageType = 'error';
+                    }
+                    break;
+                    
+                default:
+                    $message = 'Yanlış məhsul növü';
+                    $messageType = 'error';
+            }
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -559,33 +807,11 @@ function tableExists($conn, $tableName) {
             min-width: 200px;
         }
         
-        .inventory-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .inventory-card {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-            padding: 15px;
-            position: relative;
-            transition: all 0.3s;
-        }
-        
-        .inventory-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .inventory-type {
-            position: absolute;
-            top: 15px;
-            right: 15px;
+        .inventory-type-badge {
             display: inline-block;
             padding: 4px 8px;
             border-radius: 20px;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: 500;
             text-transform: uppercase;
         }
@@ -605,48 +831,6 @@ function tableExists($conn, $tableName) {
             color: #92400e;
         }
         
-        .inventory-title {
-            font-weight: 700;
-            margin-bottom: 10px;
-            padding-right: 80px;
-        }
-        
-        .inventory-details {
-            color: #6b7280;
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-        }
-        
-        .inventory-details p {
-            margin: 5px 0;
-        }
-        
-        .inventory-details strong {
-            color: #4b5563;
-        }
-        
-        .inventory-stock {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: var(--border-radius);
-            background: #f9fafb;
-        }
-        
-        .stock-icon {
-            margin-right: 10px;
-            font-size: 1.2rem;
-        }
-        
-        .stock-info {
-            flex: 1;
-        }
-        
-        .stock-level {
-            font-weight: 500;
-        }
-        
         .stock-normal {
             color: #10b981;
         }
@@ -659,41 +843,150 @@ function tableExists($conn, $tableName) {
             color: #ef4444;
         }
         
-        .inventory-actions {
+        .table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #4b5563;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .action-btn {
+            margin-right: 5px;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1050;
+        }
+        
+        .modal.show {
+            display: block;
+        }
+        
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+        }
+        
+        .modal-dialog {
+            position: relative;
+            width: auto;
+            margin: 1.75rem auto;
+            max-width: 500px;
+            z-index: 1050;
+        }
+        
+        .modal-dialog.modal-lg {
+            max-width: 700px;
+        }
+        
+        .modal-content {
+            position: relative;
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 0.3rem;
+            outline: 0;
         }
         
-        .modal-dialog.large {
-            max-width: 800px;
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            border-top-left-radius: 0.3rem;
+            border-top-right-radius: 0.3rem;
+            background: linear-gradient(135deg, #1eb15a 0%, #1e5eb1 100%);
+            color: white;
         }
         
+        .modal-title {
+            margin: 0;
+            line-height: 1.5;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+        
+        .modal-header .close {
+            padding: 1rem;
+            margin: -1rem -1rem -1rem auto;
+            background-color: transparent;
+            border: 0;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            position: relative;
+            flex: 1 1 auto;
+            padding: 1rem;
+        }
+        
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .modal-footer .btn + .btn {
+            margin-left: 0.5rem;
+        }
+        
+        /* Form Tabs */
         .form-tabs {
             display: flex;
-            border-bottom: 1px solid #e5e7eb;
             margin-bottom: 20px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 4px;
         }
         
         .form-tab {
-            padding: 10px 20px;
+            padding: 8px 16px;
             cursor: pointer;
             position: relative;
             transition: all 0.3s;
             font-weight: 500;
+            text-align: center;
+            flex: 1;
+            border-radius: 6px;
+            font-size: 14px;
         }
         
         .form-tab.active {
-            color: var(--primary-color);
+            background-color: white;
+            color: #1eb15a;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         
-        .form-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: var(--primary-color);
+        .form-tab:not(.active):hover {
+            background-color: rgba(255,255,255,0.5);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
         
         .form-content {
@@ -704,23 +997,20 @@ function tableExists($conn, $tableName) {
             display: block;
         }
         
-        @media (max-width: 992px) {
-            .filter-container {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .filter-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .filter-select, .filter-input {
-                width: 100%;
-            }
-            
-            .inventory-grid {
+        /* Custom Type Input */
+        .custom-type-container {
+            display: none;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 576px) {
+            .form-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: calc(100% - 1rem);
             }
         }
     </style>
@@ -733,8 +1023,10 @@ function tableExists($conn, $tableName) {
             <div class="nav-links">
                 <a href="index.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
                 <a href="users.php"><i class="fas fa-users"></i> İstifadəçilər</a>
+                <a href="customers.php"><i class="fas fa-user-tie"></i> Müştərilər</a>
                 <a href="inventory.php" class="active"><i class="fas fa-warehouse"></i> Anbar</a>
                 <a href="orders.php"><i class="fas fa-shopping-cart"></i> Sifarişlər</a>
+                <a href="branches.php"><i class="fas fa-building"></i> Filiallar</a>
                 <a href="reports.php"><i class="fas fa-chart-bar"></i> Hesabatlar</a>
                 <a href="settings.php"><i class="fas fa-cog"></i> Tənzimləmələr</a>
             </div>
@@ -772,7 +1064,7 @@ function tableExists($conn, $tableName) {
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2 class="card-title"><i class="fas fa-boxes"></i> İnventar</h2>
-                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addItemModal">
+                        <button type="button" class="btn btn-primary" onclick="openAddItemModal()">
                             <i class="fas fa-plus"></i> Yeni Məhsul
                         </button>
                     </div>
@@ -851,121 +1143,133 @@ function tableExists($conn, $tableName) {
                     <?php endif; ?>
                 </div>
             <?php else: ?>
-                <div class="inventory-grid">
-                    <?php foreach ($inventory as $item): ?>
-                        <?php
-                        $inventoryType = $item['inventory_type'];
-                        $stockLevel = '';
-                        $stockClass = '';
-                        $stockIcon = '';
-                        
-                        if ($inventoryType === 'glass') {
-                            $stockField = 'remaining_volume';
-                            $purchaseField = 'purchase_volume';
-                            $stockUnit = 'm²';
-                        } else {
-                            $stockField = 'remaining_quantity';
-                            $purchaseField = 'purchase_quantity';
-                            $stockUnit = $item['unit_of_measure'] ?? 'ədəd';
-                        }
-                        
-                        $stock = $item[$stockField] ?? 0;
-                        $purchaseStock = $item[$purchaseField] ?? 0;
-                        $stockPercentage = $purchaseStock > 0 ? ($stock / $purchaseStock * 100) : 0;
-                        
-                        if ($stock <= 0) {
-                            $stockLevel = 'Stokda yoxdur';
-                            $stockClass = 'stock-out';
-                            $stockIcon = 'fa-times-circle';
-                        } elseif ($stockPercentage <= 20) {
-                                                        $stockLevel = 'Stok azalır';
-                            $stockClass = 'stock-low';
-                            $stockIcon = 'fa-exclamation-circle';
-                        } else {
-                            $stockLevel = 'Normal stok';
-                            $stockClass = 'stock-normal';
-                            $stockIcon = 'fa-check-circle';
-                        }
-                        ?>
-                        <div class="inventory-card">
-                            <span class="inventory-type type-<?= $inventoryType ?>">
-                                <?php
-                                switch ($inventoryType) {
-                                    case 'glass':
-                                        echo 'Şüşə';
-                                        break;
-                                    case 'profile':
-                                        echo 'Profil';
-                                        break;
-                                    case 'accessory':
-                                        echo 'Aksesuar';
-                                        break;
-                                }
-                                ?>
-                            </span>
-                            <h3 class="inventory-title"><?= htmlspecialchars($item['name']) ?></h3>
-                            
-                            <div class="inventory-details">
-                                <?php if ($inventoryType === 'glass'): ?>
-                                    <p><strong>Növü:</strong> <?= htmlspecialchars($item['type'] ?? '-') ?></p>
-                                    <p><strong>Qalınlıq:</strong> <?= htmlspecialchars($item['thickness'] ?? '-') ?> mm</p>
-                                    <?php if (!empty($item['dimensions'])): ?>
-                                        <p><strong>Ölçülər:</strong> <?= htmlspecialchars($item['dimensions']) ?></p>
-                                    <?php endif; ?>
-                                <?php elseif ($inventoryType === 'profile'): ?>
-                                    <p><strong>Növü:</strong> <?= htmlspecialchars($item['type'] ?? '-') ?></p>
-                                    <p><strong>Rəng:</strong> <?= htmlspecialchars($item['color'] ?? '-') ?></p>
-                                    <p><strong>Ölçü vahidi:</strong> <?= htmlspecialchars($item['unit_of_measure'] ?? 'ədəd') ?></p>
-                                    <?php if (!empty($item['country'])): ?>
-                                        <p><strong>Ölkə:</strong> <?= htmlspecialchars($item['country']) ?></p>
-                                    <?php endif; ?>
-                                <?php elseif ($inventoryType === 'accessory'): ?>
-                                    <p><strong>Ölçü vahidi:</strong> <?= htmlspecialchars($item['unit_of_measure'] ?? 'ədəd') ?></p>
-                                <?php endif; ?>
-                                
-                                <p><strong>Alış qiyməti:</strong> <?= number_format($item['purchase_price'] ?? 0, 2) ?> ₼</p>
-                                
-                                <?php if (isset($item['sales_price']) && $item['sales_price'] > 0): ?>
-                                    <p><strong>Satış qiyməti:</strong> <?= number_format($item['sales_price'], 2) ?> ₼</p>
-                                <?php endif; ?>
-                            </div>
-                            
-                            <div class="inventory-stock">
-                                <div class="stock-icon">
-                                    <i class="fas <?= $stockIcon ?> <?= $stockClass ?>"></i>
-                                </div>
-                                <div class="stock-info">
-                                    <div class="stock-level <?= $stockClass ?>"><?= $stockLevel ?></div>
-                                    <div>Mövcud: <?= number_format($stock, 2) ?> <?= $stockUnit ?></div>
-                                </div>
-                            </div>
-                            
-                            <div class="inventory-actions">
-                                <button type="button" class="btn btn-primary btn-sm" 
-                                        onclick="updateStock('<?= $inventoryType ?>', <?= $item['id'] ?>, '<?= addslashes($item['name']) ?>', '<?= $stockUnit ?>')">
-                                    <i class="fas fa-edit"></i> Stoku Yenilə
-                                </button>
-                                <button type="button" class="btn btn-outline btn-sm" 
-                                        onclick="viewDetails('<?= $inventoryType ?>', <?= $item['id'] ?>)">
-                                    <i class="fas fa-eye"></i> Ətraflı
-                                </button>
-                            </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px">ID</th>
+                                        <th style="width: 100px">Növ</th>
+                                        <th>Məhsul adı</th>
+                                        <th>Xüsusiyyətləri</th>
+                                        <th>Alış qiyməti</th>
+                                        <th>Stok</th>
+                                        <th style="width: 200px">Əməliyyatlar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($inventory as $item): 
+                                        $inventoryType = $item['inventory_type'];
+                                        $stockLevel = '';
+                                        $stockClass = '';
+                                        
+                                        if ($inventoryType === 'glass') {
+                                            $stockField = 'remaining_volume';
+                                            $purchaseField = 'purchase_volume';
+                                            $stockUnit = 'm²';
+                                        } else {
+                                            $stockField = 'remaining_quantity';
+                                            $purchaseField = 'purchase_quantity';
+                                            $stockUnit = $item['unit_of_measure'] ?? 'ədəd';
+                                        }
+                                        
+                                        $stock = $item[$stockField] ?? 0;
+                                        $purchaseStock = $item[$purchaseField] ?? 0;
+                                        $stockPercentage = $purchaseStock > 0 ? ($stock / $purchaseStock * 100) : 0;
+                                        
+                                        if ($stock <= 0) {
+                                            $stockClass = 'stock-out';
+                                            $stockIcon = 'fa-times-circle';
+                                            $stockText = 'Stokda yoxdur';
+                                        } elseif ($stockPercentage <= 20) {
+                                            $stockClass = 'stock-low';
+                                            $stockIcon = 'fa-exclamation-circle';
+                                            $stockText = 'Stok azalır';
+                                        } else {
+                                            $stockClass = 'stock-normal';
+                                            $stockIcon = 'fa-check-circle';
+                                            $stockText = 'Normal stok';
+                                        }
+                                    ?>
+                                    <tr>
+                                        <td><?= $item['id'] ?></td>
+                                        <td>
+                                            <span class="inventory-type-badge type-<?= $inventoryType ?>">
+                                                <?php
+                                                switch ($inventoryType) {
+                                                    case 'glass':
+                                                        echo 'Şüşə';
+                                                        break;
+                                                    case 'profile':
+                                                        echo 'Profil';
+                                                        break;
+                                                    case 'accessory':
+                                                        echo 'Aksesuar';
+                                                        break;
+                                                }
+                                                ?>
+                                            </span>
+                                        </td>
+                                        <td><?= htmlspecialchars($item['name']) ?></td>
+                                        <td>
+                                            <?php if ($inventoryType === 'glass'): ?>
+                                                <div>Növü: <?= htmlspecialchars($item['type'] ?? '-') ?></div>
+                                                <div>Qalınlıq: <?= htmlspecialchars($item['thickness'] ?? '-') ?> mm</div>
+                                                <?php if (!empty($item['dimensions'])): ?>
+                                                    <div>Ölçülər: <?= htmlspecialchars($item['dimensions']) ?></div>
+                                                <?php endif; ?>
+                                            <?php elseif ($inventoryType === 'profile'): ?>
+                                                <div>Növü: <?= htmlspecialchars($item['type'] ?? '-') ?></div>
+                                                <div>Rəng: <?= htmlspecialchars($item['color'] ?? '-') ?></div>
+                                                <div>Ölçü vahidi: <?= htmlspecialchars($item['unit_of_measure'] ?? 'ədəd') ?></div>
+                                                <?php if (!empty($item['country'])): ?>
+                                                    <div>Ölkə: <?= htmlspecialchars($item['country']) ?></div>
+                                                <?php endif; ?>
+                                            <?php elseif ($inventoryType === 'accessory'): ?>
+                                                <div>Ölçü vahidi: <?= htmlspecialchars($item['unit_of_measure'] ?? 'ədəd') ?></div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= number_format($item['purchase_price'] ?? 0, 2) ?> ₼</td>
+                                        <td>
+                                            <div class="<?= $stockClass ?>">
+                                                <i class="fas <?= $stockIcon ?>"></i> <?= $stockText ?>
+                                            </div>
+                                            <div><?= number_format($stock, 2) ?> <?= $stockUnit ?></div>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-primary action-btn" 
+                                                    onclick="updateStock('<?= $inventoryType ?>', <?= $item['id'] ?>, '<?= addslashes($item['name']) ?>', '<?= $stockUnit ?>')">
+                                                <i class="fas fa-edit"></i> Stok
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-info action-btn" 
+                                                    onclick="editItem('<?= $inventoryType ?>', <?= $item['id'] ?>)">
+                                                <i class="fas fa-pen"></i> Düzəliş
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger action-btn" 
+                                                    onclick="deleteItem('<?= $inventoryType ?>', <?= $item['id'] ?>, '<?= addslashes($item['name']) ?>')">
+                                                <i class="fas fa-trash"></i> Sil
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
-                    <?php endforeach; ?>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>
     </main>
     
     <!-- Add Item Modal -->
-    <div class="modal fade" id="addItemModal" tabindex="-1" role="dialog" aria-labelledby="addItemModalLabel" aria-hidden="true">
-        <div class="modal-dialog large" role="document">
+    <div class="modal" id="addItemModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addItemModalLabel">Yeni Məhsul Əlavə Et</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Yeni Məhsul Əlavə Et</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-tabs">
@@ -988,15 +1292,21 @@ function tableExists($conn, $tableName) {
                                 
                                 <div class="form-group">
                                     <label for="glass_type" class="form-label">Şüşə növü <span class="text-danger">*</span></label>
-                                    <select id="glass_type" name="glass_type" class="form-control" required>
+                                    <select id="glass_type" name="glass_type" class="form-control" required onchange="toggleCustomType('glass')">
                                         <option value="">Seçin...</option>
-                                        <option value="Normal">Normal</option>
-                                        <option value="Qalın">Qalın</option>
-                                        <option value="Laminat">Laminat</option>
-                                        <option value="Rəngli">Rəngli</option>
+                                        <option value="Adi">Adi</option>
                                         <option value="Güzgü">Güzgü</option>
-                                        <option value="Qum şüşə">Qum şüşə</option>
+                                        <option value="Refle">Refle</option>
+                                        <option value="Qumlama">Qumlama</option>
+                                        <option value="Laminasiya">Laminasiya</option>
+                                        <option value="Temper">Temper</option>
+                                        <option value="Rəngli">Rəngli</option>
+                                        <option value="Qalın">Qalın</option>
+                                        <option value="custom">Digər...</option>
                                     </select>
+                                    <div id="custom_glass_type_container" class="custom-type-container">
+                                        <input type="text" id="custom_glass_type" name="custom_glass_type" class="form-control" placeholder="Şüşə növünü daxil edin">
+                                    </div>
                                 </div>
                                 
                                 <div class="form-group">
@@ -1025,7 +1335,8 @@ function tableExists($conn, $tableName) {
                                 <textarea id="glass_notes" name="notes" class="form-control" rows="2"></textarea>
                             </div>
                             
-                            <div class="form-group mt-4">
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Əlavə et
                                 </button>
@@ -1036,8 +1347,7 @@ function tableExists($conn, $tableName) {
                     <!-- Profile Form -->
                     <div class="form-content" id="profile-form">
                         <form action="" method="post">
-                            <input type="hidden" name="add_item" value="1">
-                            <input type="hidden" name="item_type" value="profile">
+                                                       <input type="hidden" name="item_type" value="profile">
                             
                             <div class="form-grid">
                                 <div class="form-group">
@@ -1047,24 +1357,50 @@ function tableExists($conn, $tableName) {
                                 
                                 <div class="form-group">
                                     <label for="profile_type" class="form-label">Profil növü <span class="text-danger">*</span></label>
-                                    <select id="profile_type" name="profile_type" class="form-control" required>
+                                    <select id="profile_type" name="profile_type" class="form-control" required onchange="toggleCustomType('profile')">
                                         <option value="">Seçin...</option>
-                                        <option value="Qapı">Qapı</option>
-                                        <option value="Pəncərə">Pəncərə</option>
-                                        <option value="Sürgü">Sürgü</option>
-                                        <option value="Vitrin">Vitrin</option>
-                                        <option value="Fasad">Fasad</option>
+                                        <option value="Yan">Yan</option>
+                                        <option value="BQ">BQ</option>
+                                        <option value="Qulp20">Qulp20</option>
+                                        <option value="Qulp110">Qulp110</option>
+                                        <option value="Qulp20 3m">Qulp20 3m</option>
+                                        <option value="Veqa">Veqa</option>
+                                        <option value="Ref">Ref</option>
+                                        <option value="Işıqlı">Işıqlı</option>
+                                        <option value="Rels">Rels</option>
+                                        <option value="custom">Digər...</option>
                                     </select>
+                                    <div id="custom_profile_type_container" class="custom-type-container">
+                                        <input type="text" id="custom_profile_type" name="custom_profile_type" class="form-control" placeholder="Profil növünü daxil edin">
+                                    </div>
                                 </div>
                                 
                                 <div class="form-group">
                                     <label for="color" class="form-label">Rəng <span class="text-danger">*</span></label>
-                                    <input type="text" id="color" name="color" class="form-control" required>
+                                    <select id="color" name="color" class="form-control" required>
+                                        <option value="">Seçin...</option>
+                                        <option value="Qara">Qara</option>
+                                        <option value="Qızılı">Qızılı</option>
+                                        <option value="Antrasit">Antrasit</option>
+                                        <option value="Açıq Antrasit">Açıq Antrasit</option>
+                                        <option value="Qəhvəyi">Qəhvəyi</option>
+                                        <option value="Ağ">Ağ</option>
+                                        <option value="Digər">Digər</option>
+                                    </select>
                                 </div>
                                 
                                 <div class="form-group">
                                     <label for="country" class="form-label">İstehsalçı ölkə</label>
-                                    <input type="text" id="country" name="country" class="form-control">
+                                    <select id="country" name="country" class="form-control">
+                                        <option value="">Seçin...</option>
+                                        <option value="Türkiyə">Türkiyə</option>
+                                        <option value="Çin">Çin</option>
+                                        <option value="Rusiya">Rusiya</option>
+                                        <option value="Polşa">Polşa</option>
+                                        <option value="Almaniya">Almaniya</option>
+                                        <option value="İtaliya">İtaliya</option>
+                                        <option value="Digər">Digər</option>
+                                    </select>
                                 </div>
                                 
                                 <div class="form-group">
@@ -1096,7 +1432,8 @@ function tableExists($conn, $tableName) {
                                 <textarea id="profile_notes" name="notes" class="form-control" rows="2"></textarea>
                             </div>
                             
-                            <div class="form-group mt-4">
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Əlavə et
                                 </button>
@@ -1144,7 +1481,8 @@ function tableExists($conn, $tableName) {
                                 <textarea id="accessory_notes" name="notes" class="form-control" rows="2"></textarea>
                             </div>
                             
-                            <div class="form-group mt-4">
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Əlavə et
                                 </button>
@@ -1157,14 +1495,13 @@ function tableExists($conn, $tableName) {
     </div>
     
     <!-- Update Stock Modal -->
-    <div class="modal fade" id="updateStockModal" tabindex="-1" role="dialog" aria-labelledby="updateStockModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+    <div class="modal" id="updateStockModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="updateStockModalLabel">Stoku Yenilə</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <h5 class="modal-title"><i class="fas fa-boxes"></i> Stoku Yenilə</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <form action="" method="post">
                     <div class="modal-body">
@@ -1173,7 +1510,7 @@ function tableExists($conn, $tableName) {
                         <input type="hidden" name="item_id" id="stock_item_id">
                         
                         <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> <span id="stock_item_name"></span> məhsulu üçün stok yeniləməsi
+                            <i class="fas fa-info-circle"></i> <strong id="stock_item_name"></strong> məhsulu üçün stok yeniləməsi
                         </div>
                         
                         <div class="form-group">
@@ -1202,9 +1539,64 @@ function tableExists($conn, $tableName) {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Bağla</button>
-                        <button type="submit" class="btn btn-primary">Yadda Saxla</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Yadda Saxla</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Item Modal -->
+    <div class="modal" id="editItemModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit"></i> Məhsulu Redaktə Et</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="edit-modal-content">
+                        <!-- Content will be loaded dynamically -->
+                        <div class="text-center p-5">
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            <p class="mt-2">Yüklənir...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteItemModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-trash-alt"></i> Məhsulu Sil</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form action="" method="post">
+                        <input type="hidden" name="delete_item" value="1">
+                        <input type="hidden" name="item_type" id="delete_item_type">
+                        <input type="hidden" name="item_id" id="delete_item_id">
+                        
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <span id="delete_warning_text">Bu məhsulu silmək istədiyinizə əminsiniz?</span>
+                        </div>
+                        
+                        <p>Məhsul adı: <strong id="delete_item_name"></strong></p>
+                        <p>Bu əməliyyat geri qaytarıla bilməz.</p>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Sil</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -1214,15 +1606,15 @@ function tableExists($conn, $tableName) {
         <div>&copy; <?= date('Y') ?> AlumPro.az - Bütün hüquqlar qorunur</div>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // User menu toggle
             const userInfo = document.querySelector('.user-info');
-            userInfo.addEventListener('click', function() {
-                this.classList.toggle('open');
-            });
+            if (userInfo) {
+                userInfo.addEventListener('click', function() {
+                    this.classList.toggle('open');
+                });
+            }
             
             // Form tabs functionality
             const formTabs = document.querySelectorAll('.form-tab');
@@ -1241,7 +1633,41 @@ function tableExists($conn, $tableName) {
                     document.getElementById(form + '-form').classList.add('active');
                 });
             });
+            
+            // Modal functionality
+            const modals = document.querySelectorAll('.modal');
+            const modalBackdrops = document.querySelectorAll('.modal-backdrop');
+            const modalCloseButtons = document.querySelectorAll('.modal-close, .close, [data-dismiss="modal"]');
+            
+            // Close modal with backdrop or close button
+            modalBackdrops.forEach(backdrop => {
+                backdrop.addEventListener('click', function() {
+                    this.closest('.modal').classList.remove('show');
+                });
+            });
+            
+            modalCloseButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    this.closest('.modal').classList.remove('show');
+                });
+            });
         });
+        
+        // Toggle custom type input field
+        function toggleCustomType(itemType) {
+            const selectElement = document.getElementById(itemType + '_type');
+            const customContainer = document.getElementById('custom_' + itemType + '_type_container');
+            
+            if (selectElement.value === 'custom') {
+                customContainer.style.display = 'block';
+            } else {
+                customContainer.style.display = 'none';
+            }
+        }
+        
+        function openAddItemModal() {
+            document.getElementById('addItemModal').classList.add('show');
+        }
         
         function updateStock(itemType, itemId, itemName, unit) {
             document.getElementById('stock_item_type').value = itemType;
@@ -1254,15 +1680,264 @@ function tableExists($conn, $tableName) {
             document.getElementById('quantity').value = '';
             document.getElementById('stock_notes').value = '';
             
-            $('#updateStockModal').modal('show');
+            // Show modal
+            document.getElementById('updateStockModal').classList.add('show');
         }
         
-        function viewDetails(itemType, itemId) {
-            // This would be implemented in a real application to show detailed information
-            alert('Məhsul məlumatları: ' + itemType + ' ID: ' + itemId);
+        function editItem(itemType, itemId) {
+            // Set loading state
+            document.getElementById('edit-modal-content').innerHTML = `
+                <div class="text-center p-5">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p class="mt-2">Yüklənir...</p>
+                </div>
+            `;
             
-            // In a real application, this would make an AJAX call to get detailed information
-            // and display it in another modal or redirect to a detailed view page
+            // Show modal
+            document.getElementById('editItemModal').classList.add('show');
+            
+            // Fetch item details and populate form
+            // This would be an AJAX call in a real app
+            // For now, let's simulate with setTimeout
+            setTimeout(() => {
+                let formHtml = '';
+                
+                if (itemType === 'glass') {
+                    formHtml = `
+                    <form action="" method="post">
+                        <input type="hidden" name="edit_item" value="1">
+                        <input type="hidden" name="item_type" value="glass">
+                        <input type="hidden" name="item_id" value="${itemId}">
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="edit_glass_name" class="form-label">Məhsul adı <span class="text-danger">*</span></label>
+                                <input type="text" id="edit_glass_name" name="name" class="form-control" value="Test Glass ${itemId}" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_glass_type" class="form-label">Şüşə növü <span class="text-danger">*</span></label>
+                                <select id="edit_glass_type" name="glass_type" class="form-control" required onchange="toggleEditCustomType('glass')">
+                                    <option value="Adi">Adi</option>
+                                    <option value="Güzgü">Güzgü</option>
+                                    <option value="Refle" selected>Refle</option>
+                                    <option value="Qumlama">Qumlama</option>
+                                    <option value="Laminasiya">Laminasiya</option>
+                                    <option value="Temper">Temper</option>
+                                    <option value="Rəngli">Rəngli</option>
+                                    <option value="Qalın">Qalın</option>
+                                    <option value="custom">Digər...</option>
+                                </select>
+                                <div id="edit_custom_glass_type_container" class="custom-type-container" style="display: none;">
+                                    <input type="text" id="edit_custom_glass_type" name="custom_glass_type" class="form-control" placeholder="Şüşə növünü daxil edin">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_thickness" class="form-label">Qalınlıq (mm) <span class="text-danger">*</span></label>
+                                <input type="number" id="edit_thickness" name="thickness" class="form-control" step="0.5" min="1" value="4" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_dimensions" class="form-label">Ölçülər</label>
+                                <input type="text" id="edit_dimensions" name="dimensions" class="form-control" placeholder="Məs: 2000x3000" value="2000x3000">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_purchase_price" class="form-label">Alış qiyməti (₼) <span class="text-danger">*</span></label>
+                                <input type="number" id="edit_purchase_price" name="purchase_price" class="form-control" step="0.01" min="0" value="10.50" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_glass_notes" class="form-label">Qeydlər</label>
+                            <textarea id="edit_glass_notes" name="notes" class="form-control" rows="2">Test notes</textarea>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Yadda saxla
+                            </button>
+                        </div>
+                    </form>
+                    `;
+                } else if (itemType === 'profile') {
+                    formHtml = `
+                    <form action="" method="post">
+                        <input type="hidden" name="edit_item" value="1">
+                        <input type="hidden" name="item_type" value="profile">
+                        <input type="hidden" name="item_id" value="${itemId}">
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="edit_profile_name" class="form-label">Məhsul adı <span class="text-danger">*</span></label>
+                                <input type="text" id="edit_profile_name" name="name" class="form-control" value="Test Profile ${itemId}" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_profile_type" class="form-label">Profil növü <span class="text-danger">*</span></label>
+                                <select id="edit_profile_type" name="profile_type" class="form-control" required onchange="toggleEditCustomType('profile')">
+                                    <option value="Yan">Yan</option>
+                                    <option value="BQ" selected>BQ</option>
+                                    <option value="Qulp20">Qulp20</option>
+                                    <option value="Qulp110">Qulp110</option>
+                                    <option value="Qulp20 3m">Qulp20 3m</option>
+                                    <option value="Veqa">Veqa</option>
+                                    <option value="Ref">Ref</option>
+                                    <option value="Işıqlı">Işıqlı</option>
+                                    <option value="Rels">Rels</option>
+                                    <option value="custom">Digər...</option>
+                                </select>
+                                <div id="edit_custom_profile_type_container" class="custom-type-container" style="display: none;">
+                                    <input type="text" id="edit_custom_profile_type" name="custom_profile_type" class="form-control" placeholder="Profil növünü daxil edin">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_color" class="form-label">Rəng <span class="text-danger">*</span></label>
+                                <select id="edit_color" name="color" class="form-control" required>
+                                    <option value="">Seçin...</option>
+                                    <option value="Qara">Qara</option>
+                                    <option value="Qızılı" selected>Qızılı</option>
+                                    <option value="Antrasit">Antrasit</option>
+                                    <option value="Açıq Antrasit">Açıq Antrasit</option>
+                                    <option value="Qəhvəyi">Qəhvəyi</option>
+                                    <option value="Ağ">Ağ</option>
+                                    <option value="Digər">Digər</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_country" class="form-label">İstehsalçı ölkə</label>
+                                <select id="edit_country" name="country" class="form-control">
+                                    <option value="">Seçin...</option>
+                                    <option value="Türkiyə" selected>Türkiyə</option>
+                                    <option value="Çin">Çin</option>
+                                    <option value="Rusiya">Rusiya</option>
+                                    <option value="Polşa">Polşa</option>
+                                    <option value="Almaniya">Almaniya</option>
+                                    <option value="İtaliya">İtaliya</option>
+                                    <option value="Digər">Digər</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_unit_of_measure" class="form-label">Ölçü vahidi <span class="text-danger">*</span></label>
+                                <select id="edit_unit_of_measure" name="unit_of_measure" class="form-control" required>
+                                    <option value="ədəd" selected>Ədəd</option>
+                                    <option value="6m">6 metr</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_purchase_price" class="form-label">Alış qiyməti (₼) <span class="text-danger">*</span></label>
+                                <input type="number" id="edit_purchase_price" name="purchase_price" class="form-control" step="0.01" min="0" value="25.00" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_sales_price" class="form-label">Satış qiyməti (₼)</label>
+                                <input type="number" id="edit_sales_price" name="sales_price" class="form-control" step="0.01" min="0" value="35.00">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_profile_notes" class="form-label">Qeydlər</label>
+                            <textarea id="edit_profile_notes" name="notes" class="form-control" rows="2">Test notes</textarea>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Yadda saxla
+                            </button>
+                        </div>
+                    </form>
+                    `;
+                } else if (itemType === 'accessory') {
+                    formHtml = `
+                    <form action="" method="post">
+                        <input type="hidden" name="edit_item" value="1">
+                        <input type="hidden" name="item_type" value="accessory">
+                        <input type="hidden" name="item_id" value="${itemId}">
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="edit_accessory_name" class="form-label">Məhsul adı <span class="text-danger">*</span></label>
+                                <input type="text" id="edit_accessory_name" name="name" class="form-control" value="Test Accessory ${itemId}" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_accessory_unit" class="form-label">Ölçü vahidi <span class="text-danger">*</span></label>
+                                <select id="edit_accessory_unit" name="accessory_unit" class="form-control" required>
+                                    <option value="ədəd" selected>Ədəd</option>
+                                    <option value="boy">Boy</option>
+                                    <option value="kisə">Kisə</option>
+                                    <option value="kg">Kiloqram</option>
+                                    <option value="palet">Palet</option>
+                                    <option value="top">Top</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="edit_purchase_price" class="form-label">Alış qiyməti (₼) <span class="text-danger">*</span></label>
+                                <input type="number" id="edit_purchase_price" name="purchase_price" class="form-control" step="0.01" min="0" value="5.00" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_accessory_notes" class="form-label">Qeydlər</label>
+                            <textarea id="edit_accessory_notes" name="notes" class="form-control" rows="2">Test notes</textarea>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Yadda saxla
+                            </button>
+                        </div>
+                    </form>
+                    `;
+                }
+                
+                document.getElementById('edit-modal-content').innerHTML = formHtml;
+                
+                // Set up close button event handlers for the newly added content
+                document.querySelectorAll('#editItemModal [data-dismiss="modal"]').forEach(button => {
+                    button.addEventListener('click', function() {
+                        document.getElementById('editItemModal').classList.remove('show');
+                    });
+                });
+            }, 500);
+        }
+        
+        function toggleEditCustomType(itemType) {
+            const selectElement = document.getElementById('edit_' + itemType + '_type');
+            const customContainer = document.getElementById('edit_custom_' + itemType + '_type_container');
+            
+            if (selectElement.value === 'custom') {
+                customContainer.style.display = 'block';
+            } else {
+                customContainer.style.display = 'none';
+            }
+        }
+        
+        function deleteItem(itemType, itemId, itemName) {
+            document.getElementById('delete_item_type').value = itemType;
+            document.getElementById('delete_item_id').value = itemId;
+            document.getElementById('delete_item_name').textContent = itemName;
+            
+            let typeText = '';
+            switch (itemType) {
+                case 'glass': typeText = 'şüşə'; break;
+                case 'profile': typeText = 'profil'; break;
+                case 'accessory': typeText = 'aksesuar'; break;
+            }
+            
+            document.getElementById('delete_warning_text').textContent = `Bu ${typeText} məhsulunu silmək istədiyinizə əminsiniz?`;
+            
+            // Show modal
+            document.getElementById('deleteItemModal').classList.add('show');
         }
     </script>
 </body>

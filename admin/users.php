@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // sendPasswordResetEmail($user['email'], $user['fullname'], $newPassword);
                     
                     // If WhatsApp integration is enabled and the user has a phone number
-                    if (WHATSAPP_ENABLED && !empty($user['phone'])) {
+                    if (defined('WHATSAPP_ENABLED') && WHATSAPP_ENABLED && !empty($user['phone'])) {
                         require_once '../includes/whatsapp.php';
                         
                         $variables = [
@@ -226,6 +226,26 @@ function generateRandomPassword($length = 8) {
     
     return $password;
 }
+
+
+// users.php fayla əlavə et (mövcud $success və $error dəyişənləri üçün)
+if (isset($_SESSION['success_message'])) {
+    $success = $_SESSION['success_message'];
+    unset($_SESSION['success_message']);
+}
+
+if (isset($_SESSION['error_message'])) {
+    $error = $_SESSION['error_message'];
+    unset($_SESSION['error_message']);
+}
+
+// Form data repopulation üçün
+$formData = $_SESSION['form_data'] ?? [];
+if (isset($_SESSION['form_data'])) {
+    unset($_SESSION['form_data']);
+}
+
+
 ?>
 <!DOCTYPE html>
 <html lang="az">
@@ -345,6 +365,77 @@ function generateRandomPassword($length = 8) {
             flex: 1;
         }
         
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+        }
+        
+        .modal.show {
+            display: block;
+        }
+        
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1001;
+        }
+        
+        .modal-content {
+            position: relative;
+            background: white;
+            margin: 50px auto;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1002;
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            padding: 15px 20px;
+            background: linear-gradient(to right, #1e5eb1, #1eb15a);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-weight: 600;
+            font-size: 18px;
+            margin: 0;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
         @media (max-width: 768px) {
             .filter-container {
                 flex-direction: column;
@@ -358,6 +449,11 @@ function generateRandomPassword($length = 8) {
             
             .filter-select, .filter-input {
                 width: 100%;
+            }
+            
+            .modal-content {
+                margin: 20px;
+                max-width: calc(100% - 40px);
             }
             
             .modal-body .form-row {
@@ -375,6 +471,7 @@ function generateRandomPassword($length = 8) {
             <div class="nav-links">
                 <a href="index.php"><i class="fas fa-tachometer-alt"></i> Panel</a>
                 <a href="users.php" class="active"><i class="fas fa-users"></i> İstifadəçilər</a>
+                <a href="customers.php"><i class="fas fa-user-tie"></i> Müştərilər</a>
                 <a href="orders.php"><i class="fas fa-clipboard-list"></i> Sifarişlər</a>
                 <a href="inventory.php"><i class="fas fa-boxes"></i> Anbar</a>
                 <a href="branches.php"><i class="fas fa-building"></i> Filiallar</a>
@@ -646,12 +743,12 @@ function generateRandomPassword($length = 8) {
     </main>
 
     <!-- Add User Modal -->
-    <div class="modal" id="addUserModal" tabindex="-1">
-        <div class="modal-backdrop" data-dismiss="modal"></div>
-        <div class="modal">
+    <div class="modal" id="addUserModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Yeni İstifadəçi Əlavə Et</h5>
-                <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">×</button>
+                <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form action="user-add.php" method="post">
@@ -718,7 +815,7 @@ function generateRandomPassword($length = 8) {
                     </div>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                        <button type="button" class="btn btn-secondary modal-close-btn">İmtina</button>
                         <button type="submit" class="btn btn-primary">Əlavə et</button>
                     </div>
                 </form>
@@ -727,12 +824,12 @@ function generateRandomPassword($length = 8) {
     </div>
 
     <!-- Edit User Modal -->
-    <div class="modal" id="editUserModal" tabindex="-1">
-        <div class="modal-backdrop" data-dismiss="modal"></div>
-        <div class="modal">
+    <div class="modal" id="editUserModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">İstifadəçi Düzəliş</h5>
-                <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">×</button>
+                <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form action="user-edit.php" method="post">
@@ -788,7 +885,7 @@ function generateRandomPassword($length = 8) {
                     </div>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                        <button type="button" class="btn btn-secondary modal-close-btn">İmtina</button>
                         <button type="submit" class="btn btn-primary">Yadda saxla</button>
                     </div>
                 </form>
@@ -797,12 +894,12 @@ function generateRandomPassword($length = 8) {
     </div>
 
     <!-- Status Change Modal -->
-    <div class="modal" id="statusChangeModal" tabindex="-1">
-        <div class="modal-backdrop" data-dismiss="modal"></div>
-        <div class="modal">
+    <div class="modal" id="statusChangeModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">İstifadəçi Statusunu Dəyiş</h5>
-                <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">×</button>
+                <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form method="post" action="">
@@ -821,7 +918,7 @@ function generateRandomPassword($length = 8) {
                     </div>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                        <button type="button" class="btn btn-secondary modal-close-btn">İmtina</button>
                         <button type="submit" class="btn btn-primary">Yadda saxla</button>
                     </div>
                 </form>
@@ -830,12 +927,12 @@ function generateRandomPassword($length = 8) {
     </div>
 
     <!-- Reset Password Modal -->
-    <div class="modal" id="resetPasswordModal" tabindex="-1">
-        <div class="modal-backdrop" data-dismiss="modal"></div>
-        <div class="modal">
+    <div class="modal" id="resetPasswordModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Şifrə Sıfırlama</h5>
-                <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">×</button>
+                <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form method="post" action="">
@@ -848,7 +945,7 @@ function generateRandomPassword($length = 8) {
                     <p>Davam etmək istəyirsiniz?</p>
                     
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">İmtina</button>
+                        <button type="button" class="btn btn-secondary modal-close-btn">İmtina</button>
                         <button type="submit" class="btn btn-danger">Şifrəni Sıfırla</button>
                     </div>
                 </form>
@@ -864,41 +961,38 @@ function generateRandomPassword($length = 8) {
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // User menu toggle
-            const userInfo = document.querySelector('.user-info');
+            const userInfo = document.querySelector('.header-right .user-info');
             userInfo.addEventListener('click', function() {
                 this.classList.toggle('open');
             });
             
             // Modal functionality
-            const modals = document.querySelectorAll('.modal');
-            const modalBackdrops = document.querySelectorAll('.modal-backdrop');
-            const modalCloseButtons = document.querySelectorAll('.modal-close');
-            const modalTriggers = document.querySelectorAll('[data-toggle="modal"]');
+            function openModal(modalId) {
+                document.getElementById(modalId).classList.add('show');
+            }
             
-            // Open modal
-            modalTriggers.forEach(trigger => {
-                trigger.addEventListener('click', function() {
-                    const targetModalId = this.getAttribute('data-target');
-                    document.querySelector(targetModalId).classList.add('show');
+            function closeModal(modalEl) {
+                modalEl.classList.remove('show');
+            }
+            
+            // Close modal with click on backdrop or close button
+            document.querySelectorAll('.modal-backdrop, .modal-close, .modal-close-btn').forEach(el => {
+                el.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    closeModal(modal);
                 });
             });
             
-            // Close modal with backdrop or close button
-            modalBackdrops.forEach(backdrop => {
-                backdrop.addEventListener('click', function() {
-                    this.parentElement.classList.remove('show');
-                });
-            });
-            
-            modalCloseButtons.forEach(button => {
+            // Open modal with data-toggle="modal" buttons
+            document.querySelectorAll('[data-toggle="modal"]').forEach(button => {
                 button.addEventListener('click', function() {
-                    this.closest('.modal').classList.remove('show');
+                    const target = this.getAttribute('data-target').replace('#', '');
+                    openModal(target);
                 });
             });
             
             // Edit user button
-            const editUserButtons = document.querySelectorAll('.edit-user-btn');
-            editUserButtons.forEach(button => {
+            document.querySelectorAll('.edit-user-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const userId = this.getAttribute('data-id');
                     const name = this.getAttribute('data-name');
@@ -914,13 +1008,12 @@ function generateRandomPassword($length = 8) {
                     document.getElementById('edit_branch_id').value = branch;
                     document.getElementById('edit_status').value = status;
                     
-                    document.getElementById('editUserModal').classList.add('show');
+                    openModal('editUserModal');
                 });
             });
             
             // Status change button
-            const statusChangeButtons = document.querySelectorAll('.status-change-btn');
-            statusChangeButtons.forEach(button => {
+            document.querySelectorAll('.status-change-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const userId = this.getAttribute('data-id');
                     const name = this.getAttribute('data-name');
@@ -930,13 +1023,12 @@ function generateRandomPassword($length = 8) {
                     document.getElementById('status_user_name').textContent = `İstifadəçi: ${name} (Cari status: ${statusText(status)})`;
                     document.getElementById('new_status').value = status;
                     
-                    document.getElementById('statusChangeModal').classList.add('show');
+                    openModal('statusChangeModal');
                 });
             });
             
             // Reset password button
-            const resetPasswordButtons = document.querySelectorAll('.reset-password-btn');
-            resetPasswordButtons.forEach(button => {
+            document.querySelectorAll('.reset-password-btn').forEach(button => {
                 button.addEventListener('click', function() {
                     const userId = this.getAttribute('data-id');
                     const name = this.getAttribute('data-name');
@@ -944,7 +1036,7 @@ function generateRandomPassword($length = 8) {
                     document.getElementById('reset_user_id').value = userId;
                     document.getElementById('reset_user_name').textContent = `İstifadəçi: ${name}`;
                     
-                    document.getElementById('resetPasswordModal').classList.add('show');
+                    openModal('resetPasswordModal');
                 });
             });
             
@@ -963,8 +1055,8 @@ function generateRandomPassword($length = 8) {
             roleSelects.forEach(select => {
                 select.addEventListener('change', function() {
                     const branchField = this.id === 'role' ? 
-                        document.getElementById('branch_id').parentElement.parentElement : 
-                        document.getElementById('edit_branch_id').parentElement.parentElement;
+                        document.getElementById('branch_id').closest('.form-col') : 
+                        document.getElementById('edit_branch_id').closest('.form-col');
                     
                     if (this.value === 'seller' || this.value === 'production') {
                         branchField.style.display = 'block';
@@ -988,3 +1080,6 @@ function generateRandomPassword($length = 8) {
     </script>
 </body>
 </html>
+
+
+
