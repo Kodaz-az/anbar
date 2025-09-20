@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yönetici Paneli - Kampüs Pazarı</title>
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <header>
+      <div class="container navbar">
+        <a class="navbar-brand" href="index.html">Kampüs Pazarı</a>
+        <nav class="navbar-links">
+          <a href="index.html">Anasayfa</a>
+          <a href="submit-listing.html" data-auth>İlan Ver</a>
+          <a href="my-listings.html" data-auth>İlanlarım</a>
+          <a href="admin-dashboard.html" data-role="admin">Admin Paneli</a>
+          <a href="login.html" data-guest>Giriş Yap</a>
+          <a href="register.html" data-guest>Kayıt Ol</a>
+          <button data-logout class="hidden" data-auth>Çıkış Yap</button>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="container">
+        <h1>Yönetici Paneli</h1>
+        <p>Onay bekleyen ilanları inceleyip yayına alabilirsiniz.</p>
+        <div class="grid" data-admin-listings></div>
+      </section>
+    </main>
+
+    <script type="module" src="js/listings.js"></script>
+  </body>
+</html>
