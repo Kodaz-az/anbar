@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>İlan Oluştur - Kampüs Pazarı</title>
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <header>
+      <div class="container navbar">
+        <a class="navbar-brand" href="index.html">Kampüs Pazarı</a>
+        <nav class="navbar-links">
+          <a href="index.html">Anasayfa</a>
+          <a href="submit-listing.html" data-auth>İlan Ver</a>
+          <a href="my-listings.html" data-auth>İlanlarım</a>
+          <a href="admin-dashboard.html" data-role="admin">Admin Paneli</a>
+          <a href="login.html" data-guest>Giriş Yap</a>
+          <a href="register.html" data-guest>Kayıt Ol</a>
+          <button data-logout class="hidden" data-auth>Çıkış Yap</button>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="container">
+        <h1>Yeni ilan oluştur</h1>
+        <p>İlanınız yönetici onayına gönderilecek ve onaylandığında yayınlanacaktır.</p>
+        <div class="alert hidden" data-alert></div>
+        <form id="listing-form" class="form">
+          <div class="form-group">
+            <label for="title">Başlık</label>
+            <input type="text" id="title" name="title" required />
+          </div>
+          <div class="form-group">
+            <label for="description">Açıklama</label>
+            <textarea id="description" name="description" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="category">Kategori</label>
+            <input type="text" id="category" name="category" required />
+          </div>
+          <div class="form-group">
+            <label for="imageUrl">Görsel URL (opsiyonel)</label>
+            <input type="url" id="imageUrl" name="imageUrl" placeholder="https://" />
+          </div>
+          <div class="form-group">
+            <label for="contactInfo">İletişim Bilgisi</label>
+            <input type="text" id="contactInfo" name="contactInfo" required />
+          </div>
+          <button type="submit" class="button">Onaya Gönder</button>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="js/listings.js"></script>
+  </body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giriş Yap - Kampüs Pazarı</title>
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <header>
+      <div class="container navbar">
+        <a class="navbar-brand" href="index.html">Kampüs Pazarı</a>
+        <nav class="navbar-links">
+          <a href="index.html">Anasayfa</a>
+          <a href="submit-listing.html" data-auth>İlan Ver</a>
+          <a href="my-listings.html" data-auth>İlanlarım</a>
+          <a href="admin-dashboard.html" data-role="admin">Admin Paneli</a>
+          <a href="login.html" data-guest>Giriş Yap</a>
+          <a href="register.html" data-guest>Kayıt Ol</a>
+          <button data-logout class="hidden" data-auth>Çıkış Yap</button>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="container">
+        <h1>Tekrar hoş geldiniz</h1>
+        <p>Lütfen okul e-posta adresiniz ve şifreniz ile giriş yapın.</p>
+        <div class="alert hidden" data-alert></div>
+        <form id="login-form" class="form">
+          <div class="form-group">
+            <label for="email">E-posta</label>
+            <input type="email" id="email" name="email" required />
+          </div>
+          <div class="form-group">
+            <label for="password">Şifre</label>
+            <input type="password" id="password" name="password" minlength="8" required />
+          </div>
+          <button type="submit" class="button">Giriş Yap</button>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="js/auth.js"></script>
+  </body>
+</html>
